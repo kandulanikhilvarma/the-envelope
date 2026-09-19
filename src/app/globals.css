@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+/* ── Elegant Keepsake palette ─────────────────────────────────────────
+   60-30-10: ivory base / warm ink / oxblood-wax accent.
+   Every value below is contrast-checked against its own surface.
+   --gold FAILS AA on ivory (2.93:1). Decorative only: rules, dividers,
+   seal filigree. Never put text in it.
+   ------------------------------------------------------------------- */
+
+:root {
+  --bg: #fbf7f0; /* ivory — warm paper, not stark white */
+  --surface: #f3eadb; /* cream — cards, stationery blocks */
+  --ink: #2a2420; /* warm ink — body copy, 14.0:1 on --bg */
+  --seal: #7b2d26; /* oxblood wax — every CTA, 8.75:1 on --bg */
+  --seal-ink: #fbf7f0; /* text on a --seal fill, 9.35:1 */
+  --gold: #b08d3b; /* decorative only, see note above */
+  --muted: #6f6458; /* captions/meta, 5.41:1 on --bg */
+  --line: #e0d4c0; /* hairline rules on ivory */
+}
+
+/* Dark: the light-mode oxblood sits at 1.89:1 on the dark base, so --seal
+   lifts to a clay red rather than desaturating. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1815;
+    --surface: #262019;
+    --ink: #f3eadb; /* 14.8:1 on --bg */
+    --seal: #d9695c; /* 5.14:1 on --bg */
+    --seal-ink: #1c1815;
+    --gold: #c9a961;
+    --muted: #b3a695;
+    --line: #3a3128;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #1c1815;
+  --surface: #262019;
+  --ink: #f3eadb;
+  --seal: #d9695c;
+  --seal-ink: #1c1815;
+  --gold: #c9a961;
+  --muted: #b3a695;
+  --line: #3a3128;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-seal: var(--seal);
+  --color-seal-ink: var(--seal-ink);
+  --color-gold: var(--gold);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-source-serif);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body), Georgia, "Times New Roman", serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

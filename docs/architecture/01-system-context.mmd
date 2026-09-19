@@ -1,0 +1,50 @@
+---
+title: The Envelope — System Context
+---
+flowchart TB
+    subgraph acq["Acquisition"]
+        TT["TikTok / IG<br/>'letter reveal' organic"]
+        WP["Wedding pros<br/>photographers, planners"]
+    end
+
+    V(["Visitor"])
+    TT --> V
+    WP --> V
+
+    subgraph vercel["Vercel — Next.js App Router"]
+        MKT["Marketing pages<br/>RSC, static"]
+        APP["Compose + Checkout<br/>Server Actions"]
+        HOOK["/api/stripe/webhook<br/>signature verified"]
+        CRON["/api/cron/dispatch<br/>shared-secret protected"]
+    end
+
+    V --> MKT
+    MKT --> APP
+
+    subgraph supa["Supabase — Postgres"]
+        ORD[("orders<br/>stripe_session_id UNIQUE")]
+        LET[("letters<br/>ciphertext + key_version<br/>CHECK deliver_on &lt;= created_at + 5y")]
+        CON[("consent_log<br/>withdrawal + Art.9 consent")]
+        HB[("cron_heartbeat<br/>last_run_at")]
+    end
+
+    APP -->|"create pending order"| ORD
+    HOOK -->|"persist order + encrypted letter<br/>idempotent on session id"| LET
+    HOOK --> CON
+    CRON -->|"CAS scheduled to sending<br/>FOR UPDATE SKIP LOCKED"| LET
+    CRON --> HB
+
+    STRIPE{{"Stripe Checkout<br/>EUR 19 / EUR 29 · 19% VAT"}}
+    APP -->|"create session"| STRIPE
+    STRIPE -->|"checkout.session.completed"| HOOK
+
+    SCHED{{"Scheduler<br/>pg_cron or Vercel Cron<br/>daily 08:00 CET"}}
+    SCHED --> CRON
+
+    PIN{{"Pingen API<br/>letters.create"}}
+    CRON -->|"decrypt, then send"| PIN
+    PIN --> DP["Deutsche Post"]
+    DP --> RCP(["Recipient mailbox"])
+
+    ALERT["Operator alert<br/>send failure / cron overdue"]
+    CRON -.->|"on error or stale heartbeat"| ALERT

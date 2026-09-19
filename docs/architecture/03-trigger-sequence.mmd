@@ -1,0 +1,42 @@
+---
+title: The Envelope — Trigger & fulfilment (mail path)
+---
+sequenceDiagram
+    autonumber
+    participant SCH as Scheduler
+    participant WK as Dispatch worker
+    participant DB as Supabase
+    participant P as Pingen API
+    participant OP as Operator alert
+
+    SCH->>WK: invoke daily 08:00 CET (shared-secret header)
+    WK->>DB: UPDATE cron_heartbeat SET last_run_at = now()
+
+    WK->>DB: SELECT id FROM letters WHERE deliver_on <= current_date AND status = 'scheduled' FOR UPDATE SKIP LOCKED
+    Note over WK,DB: `<=` not `=` — a missed run self-catches-up.
+
+    loop each due letter
+        WK->>DB: UPDATE letters SET status='sending' WHERE id=$1 AND status='scheduled' RETURNING *
+        alt CAS won
+            DB-->>WK: row
+            WK->>WK: decrypt via keyring[key_version]
+            WK->>P: POST letters.create (idempotency key = letter id)
+            alt success
+                P-->>WK: pingen_id
+                WK->>DB: status='sent', pingen_id, sent_at=now()
+            else failure
+                P-->>WK: error
+                WK->>DB: status='retry', attempts = attempts + 1
+                WK->>OP: alert — send failed
+            end
+        else CAS lost
+            DB-->>WK: no row — another run claimed it, never double-mail
+        end
+    end
+
+    WK->>DB: SELECT count(*) FROM letters WHERE deliver_on < current_date - 1 AND status IN ('scheduled','retry')
+    alt overdue backlog present
+        WK->>OP: alert — letters overdue, scheduler may be dead
+    end
+
+    Note over SCH,OP: Watchdog: an external check on cron_heartbeat.last_run_at<br/>catches the case where the scheduler stops firing entirely.

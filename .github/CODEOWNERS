@@ -1,0 +1,6 @@
+* @kandulanikhilvarma
+
+# Paths where a mistake is expensive or irreversible.
+/src/lib/crypto.ts   @kandulanikhilvarma
+/src/app/api/        @kandulanikhilvarma
+/supabase/           @kandulanikhilvarma

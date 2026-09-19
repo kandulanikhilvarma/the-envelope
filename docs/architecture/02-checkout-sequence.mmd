@@ -1,0 +1,37 @@
+---
+title: The Envelope — Checkout (money path)
+---
+sequenceDiagram
+    autonumber
+    actor U as Customer
+    participant A as Next.js App
+    participant S as Stripe
+    participant W as Webhook handler
+    participant DB as Supabase
+
+    U->>A: compose letter, delivery date, recipient address
+    A->>A: zod validate — horizon <= 5y, address shape
+    A->>U: consent gate (unticked, required)
+    Note over A,U: Art. 9 explicit consent for special-category content.<br/>Withdrawal terms depend on the goods-vs-service<br/>classification, which is still an open decision.
+
+    U->>A: accept + submit
+    A->>S: create Checkout Session (EUR 19 / EUR 29, 19% VAT)
+    S-->>U: hosted payment page
+    U->>S: pay
+
+    S->>W: checkout.session.completed
+    W->>W: verify webhook signature
+    W->>W: encrypt letter body (AES-256-GCM, current key_version)
+
+    W->>DB: INSERT order ON CONFLICT (stripe_session_id) DO NOTHING
+    alt first delivery of this event
+        DB-->>W: inserted
+        W->>DB: INSERT letter (ciphertext, iv, key_version, status='scheduled')
+        W->>DB: INSERT consent_log (text_version, ip, ts)
+        W-->>U: confirmation email
+    else replay / duplicate event
+        DB-->>W: no-op
+        W-->>S: 200 OK (idempotent)
+    end
+
+    Note over U,DB: If a withdrawal window is honored, cancel sets<br/>status='withdrawn', refunds via Stripe, hard-deletes ciphertext.
