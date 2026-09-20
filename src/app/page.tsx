@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const HORIZON_MAX_YEARS = 5;
 
 function SealedEnvelope({ className = "" }: { className?: string }) {
@@ -64,7 +66,9 @@ export default function Home() {
       </div>
 
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5">
-        <span className="font-display text-xl tracking-tight">The Envelope</span>
+        <span className="font-display text-xl tracking-tight">
+          The Envelope
+        </span>
         <nav aria-label="Primary">
           <a
             href="#how"
@@ -89,12 +93,12 @@ export default function Home() {
               you pick — up to {HORIZON_MAX_YEARS} years out. It arrives in the
               post, not the inbox.
             </p>
-            <a
+            <Link
               href="/write"
               className="mt-8 inline-block rounded-sm bg-seal px-7 py-3.5 text-lg text-seal-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-seal"
             >
               Write your letter — €19
-            </a>
+            </Link>
             <p className="mt-3 text-sm text-muted">
               One payment. No account needed. €29 for a couple&rsquo;s pair.
             </p>
@@ -198,12 +202,12 @@ export default function Home() {
           <p className="mx-auto mt-4 max-w-xl text-lg text-muted">
             Write it while the day still feels like this.
           </p>
-          <a
+          <Link
             href="/write"
             className="mt-8 inline-block rounded-sm bg-seal px-7 py-3.5 text-lg text-seal-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-seal"
           >
             Write your letter — €19
-          </a>
+          </Link>
         </section>
       </main>
 
@@ -211,15 +215,28 @@ export default function Home() {
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:justify-between">
           <span>The Envelope</span>
           <nav aria-label="Footer" className="flex gap-5">
-            <a href="/promise" className="underline-offset-4 hover:underline">
+            <Link
+              href="/promise"
+              className="underline-offset-4 hover:underline"
+            >
               Our wind-down promise
-            </a>
-            <a href="/privacy" className="underline-offset-4 hover:underline">
+            </Link>
+            <Link
+              href="/privacy"
+              className="underline-offset-4 hover:underline"
+            >
               Privacy
-            </a>
-            <a href="/terms" className="underline-offset-4 hover:underline">
+            </Link>
+            <Link href="/terms" className="underline-offset-4 hover:underline">
               Terms
-            </a>
+            </Link>
+            {/* Reachable from every page: §5 TMG requires it. */}
+            <Link
+              href="/imprint"
+              className="underline-offset-4 hover:underline"
+            >
+              Impressum
+            </Link>
           </nav>
         </div>
       </footer>
