@@ -58,6 +58,13 @@ export async function POST(request: Request): Promise<Response> {
       status: "paid",
       paid_at: new Date().toISOString(),
       purchaser_email: session.customer_details?.email ?? null,
+      // Needed to refund later: you can refund a payment intent, not a
+      // Checkout Session. Captured here because this is the only moment
+      // Stripe hands it to us without another API call.
+      stripe_payment_intent_id:
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : (session.payment_intent?.id ?? null),
     })
     .eq("stripe_session_id", session.id);
 

@@ -11,3 +11,9 @@
 export const CONSENT_TEXT_VERSION = "2026-09-20.a";
 
 export type ComposeState = { error?: string; field?: string };
+
+export type CancelState = {
+  error?: string;
+  message?: string;
+  done?: boolean;
+};
