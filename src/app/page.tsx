@@ -230,6 +230,13 @@ export default function Home() {
             <Link href="/terms" className="underline-offset-4 hover:underline">
               Terms
             </Link>
+            {/* Reachable from every page: §5 TMG requires it. */}
+            <Link
+              href="/imprint"
+              className="underline-offset-4 hover:underline"
+            >
+              Impressum
+            </Link>
           </nav>
         </div>
       </footer>
