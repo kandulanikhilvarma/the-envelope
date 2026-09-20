@@ -1,6 +1,5 @@
 import { open, secretsMatch } from "@/lib/crypto.ts";
 import { db, fromBytea, type LetterRow } from "@/lib/db.ts";
-import { requireEnv } from "@/lib/env.ts";
 import { renderLetterPdf } from "@/lib/pdf.ts";
 import { sendLetter } from "@/lib/pingen.ts";
 
@@ -27,7 +26,14 @@ const MAX_ATTEMPTS = 5;
  * so the scheduler can be swapped without touching this route.
  */
 function authorized(request: Request): boolean {
-  const secret = requireEnv("CRON_SECRET");
+  // Deliberately not requireEnv: throwing here produces a 500, which tells
+  // an anonymous caller the route exists and is merely broken. A server with
+  // no secret configured should refuse everyone and look absent.
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    console.error("CRON_SECRET is not set; dispatch is refusing all callers");
+    return false;
+  }
 
   const bearer = request.headers.get("authorization");
   if (bearer?.startsWith("Bearer ")) {
