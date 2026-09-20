@@ -54,12 +54,16 @@ and removing one re-introduces a risk that was deliberately engineered out.
 - **Published wind-down promise.** If the service closes, undelivered letters
   are posted early or returned.
 
-## Open blocking decision
+## Open decision
 
 Whether the sale is classified as goods or as a service is still open, and it
-determines both the consumer withdrawal handling and the VAT treatment. Until
-it is settled the `letters` status enum is not final. Working notes are kept
-outside this repository.
+determines the VAT treatment and the exact consent wording.
+
+The code takes the conservative path either way: a pending letter can always
+be cancelled, which deletes it and refunds the payment. That satisfies a
+withdrawal right if one applies, and costs nothing if one does not — so the
+classification no longer blocks the schema. Working notes are kept outside
+this repository.
 
 ## Security
 
