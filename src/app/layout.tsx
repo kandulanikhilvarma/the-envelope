@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Source_Serif_4 } from "next/font/google";
+import { siteUrl } from "@/lib/env.ts";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -13,6 +14,9 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
+  // Without this, Next resolves Open Graph URLs against localhost in
+  // production and warns at build time.
+  metadataBase: new URL(siteUrl()),
   title: "The Envelope — a letter to your first anniversary",
   description:
     "Write a letter on your wedding day. We seal it, hold it, and post it on the date you choose — up to five years out.",

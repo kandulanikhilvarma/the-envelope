@@ -1,6 +1,11 @@
 import { open, secretsMatch } from "@/lib/crypto.ts";
 import { db, fromBytea, type LetterRow } from "@/lib/db.ts";
-import { preSendNoticeEmail, sendEmail } from "@/lib/email.ts";
+import {
+  operatorAlertEmail,
+  operatorEmail,
+  preSendNoticeEmail,
+  sendEmail,
+} from "@/lib/email.ts";
 import type { Recipient } from "@/lib/letters.ts";
 import { renderLetterPdf } from "@/lib/pdf.ts";
 import { sendLetter } from "@/lib/pingen.ts";
@@ -88,6 +93,7 @@ async function dispatch(request: Request): Promise<Response> {
   }
 
   const letters = (claimed ?? []) as LetterRow[];
+  const failures: { letterId: string; message: string }[] = [];
   let sent = 0;
   let failed = 0;
 
@@ -148,6 +154,7 @@ async function dispatch(request: Request): Promise<Response> {
         })
         .eq("id", letter.id);
 
+      failures.push({ letterId: letter.id, message: message.slice(0, 200) });
       failed += 1;
     }
   }
@@ -160,8 +167,33 @@ async function dispatch(request: Request): Promise<Response> {
   // A backlog means the scheduler stopped or Pingen is rejecting everything.
   // Either way it is silent until someone's letter arrives late.
   const { data: overdue } = await supabase.rpc("overdue_letter_count");
-  if (typeof overdue === "number" && overdue > 0) {
-    console.error(`${overdue} letters are overdue`, { overdue });
+  const overdueCount = typeof overdue === "number" ? overdue : 0;
+  if (overdueCount > 0) {
+    console.error(`${overdueCount} letters are overdue`, { overdue });
+  }
+
+  // A log nobody reads is not an alert. This is the only message that goes
+  // to the operator rather than a customer.
+  if (failed > 0 || overdueCount > 0) {
+    const to = operatorEmail();
+    if (to) {
+      await sendEmail(
+        to,
+        operatorAlertEmail({ sent, failed, overdue: overdueCount, failures }),
+      );
+    } else {
+      console.error("OPERATOR_EMAIL is not set; nobody is being told", {
+        failed,
+        overdue: overdueCount,
+      });
+    }
+  }
+
+  // Housekeeping: the limiter's rows are transient and nothing else deletes
+  // them.
+  const { error: sweepError } = await supabase.rpc("sweep_rate_limits");
+  if (sweepError) {
+    console.error("Could not sweep rate limits", sweepError);
   }
 
   return Response.json({
@@ -169,7 +201,7 @@ async function dispatch(request: Request): Promise<Response> {
     sent,
     failed,
     notices,
-    overdue: overdue ?? null,
+    overdue: overdueCount,
   });
 }
 

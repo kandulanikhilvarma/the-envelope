@@ -15,11 +15,27 @@ export function optionalEnv(name: string, fallback: string): string {
   return process.env[name] || fallback;
 }
 
+/**
+ * The canonical origin, with no trailing slash.
+ *
+ * Falls back to the host Vercel injects, so a deploy made before anyone sets
+ * NEXT_PUBLIC_SITE_URL still publishes its own address rather than
+ * localhost — which would otherwise end up in robots.txt, the sitemap and
+ * every Stripe redirect.
+ *
+ * Production host before preview host on purpose: a confirmation email can
+ * outlive the preview deployment that sent it, and a dead preview URL is a
+ * customer who cannot cancel.
+ */
 export function siteUrl(): string {
-  return optionalEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const vercelHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (vercelHost) return `https://${vercelHost.replace(/\/$/, "")}`;
+
+  return "http://localhost:3000";
 }
 
 export const aiDraftEnabled = () => process.env.ENABLE_AI_DRAFT === "true";

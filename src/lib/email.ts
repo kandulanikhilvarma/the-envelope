@@ -84,6 +84,14 @@ export async function sendEmail(
   }
 }
 
+/**
+ * Where operator alerts go. Null means nobody is watching, which is worth
+ * saying out loud rather than failing quietly.
+ */
+export function operatorEmail(): string | null {
+  return process.env.OPERATOR_EMAIL || null;
+}
+
 /** 2027-06-14 → "14 June 2027". Letters are about dates people recognise. */
 export function longDate(iso: IsoDate): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
@@ -176,5 +184,45 @@ export function preSendNoticeEmail(opts: {
       "",
       "— The Envelope",
     ].join("\n"),
+  };
+}
+
+/**
+ * The operator alert the architecture has always called for and the code
+ * only ever wrote to a log.
+ *
+ * A letter that fails to post is silent until the person who wrote it asks
+ * why nothing arrived, and a scheduler that stops is silent for longer. This
+ * is the one message that goes to the operator rather than a customer.
+ *
+ * Letter ids and error text only — never a body, never a recipient address.
+ */
+export function operatorAlertEmail(opts: {
+  sent: number;
+  failed: number;
+  overdue: number;
+  failures: { letterId: string; message: string }[];
+}): Message {
+  const headline =
+    opts.overdue > 0
+      ? `${opts.overdue} letter(s) overdue`
+      : `${opts.failed} letter(s) failed to post`;
+
+  return {
+    subject: `The Envelope: ${headline}`,
+    text: [
+      `Dispatch finished with ${opts.sent} sent and ${opts.failed} failed.`,
+      "",
+      opts.overdue > 0
+        ? `${opts.overdue} letter(s) are past their delivery date and still unsent. Either the scheduler has stopped or Pingen is rejecting everything. Check both.`
+        : "No overdue backlog.",
+      "",
+      opts.failures.length > 0 ? "Failures:" : "",
+      ...opts.failures.map((f) => `  ${f.letterId}: ${f.message}`),
+      "",
+      "Letter bodies and recipient addresses are deliberately not included.",
+    ]
+      .filter((line, index, all) => line !== "" || all[index - 1] !== "")
+      .join("\n"),
   };
 }

@@ -24,6 +24,7 @@ through Pingen on Deutsche Post rails.
 - [Pages](#pages)
 - [Project layout](#project-layout)
 - [Environment](#environment)
+- [Production hardening](#production-hardening)
 - [Encryption](#encryption)
 - [Idempotency](#idempotency)
 - [Email](#email)
@@ -60,6 +61,9 @@ npm run dev
 | `npm run typecheck` | `next typegen` then `tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm test` | Node's own test runner over `src/lib/*.test.ts` |
+| `npm run preflight` | Talks to every real dependency and reports what is wired and what is not |
+| `npm run pdf-proof` | Renders a letter and checks the address lands in the DIN 5008 window |
+| `npm run test-letter` | Posts one real letter through Pingen — the week-zero gate |
 
 `next typegen` must run before `tsc` — Next generates the route types that
 `layout.tsx` and `page.tsx` depend on.
@@ -307,6 +311,10 @@ agent, against the order, rather than as a boolean on it.
 **`cron_heartbeat`** — one row. Lets an external watchdog notice the scheduler
 has stopped, which is otherwise silent until somebody's letter arrives late.
 
+**`rate_limit`** — transient counters for the two paths a stranger can post
+to. The bucket key holds a SHA-256 of the caller's IP, never the address, and
+the daily worker sweeps rows older than a day.
+
 Two constraints do work the application also does, on purpose:
 
 ```sql
@@ -373,6 +381,10 @@ refunding it would be refunding something already delivered.
 | `/imprint` | Static | §5 TMG Impressum. Linked from every page footer. |
 | `/api/stripe/webhook` | Dynamic | Signature-verified. Three events. |
 | `/api/cron/dispatch` | Dynamic | Notices, then dispatch. 404s without the secret. |
+| `/robots.txt` | Static | Keeps `/written`, `/cancel` and the API out of search results. |
+| `/sitemap.xml` | Static | The six pages a stranger should be able to find. |
+| `not-found.tsx` | Static | 404, with the three places people actually meant to go. |
+| `error.tsx` / `global-error.tsx` | Client | Error boundaries. Show a digest, never the error text. |
 
 The compose form is the only Client Component in the product. Everything it
 accepts is re-validated in the Server Action, because nothing typed in a
@@ -401,11 +413,13 @@ src/
     pdf.ts                 A4 render, DIN 5008 address window
     email.ts               confirmation and pre-send notice
     withdraw.ts            erase + refund, and the erase-only path
+    rate-limit.ts          Postgres-backed limiter for the open POST paths
     db.ts                  the single service-role client
     env.ts                 required-variable accessor
-supabase/migrations/       schema, RPC lockdown, withdrawal, notices
+supabase/migrations/       schema, RPC lockdown, withdrawal, notices, limits
 docs/architecture/         the three diagrams above
 scripts/
+  preflight.ts             proves every dependency answers, prints no secrets
   pdf-proof.ts             renders a proof letter to check the window
   pingen-test-letter.ts    the week-zero live test
 ```
@@ -417,7 +431,7 @@ the site URL and the Pingen base, which points at staging on purpose.
 
 | Variable | Needed by | Note |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | checkout redirects, email links | No trailing slash; it is stripped anyway. |
+| `NEXT_PUBLIC_SITE_URL` | checkout redirects, email links, sitemap | Optional on Vercel: falls back to the injected production host, so a deploy never publishes `localhost`. |
 | `NEXT_PUBLIC_SUPABASE_URL` | everything server-side | |
 | `SUPABASE_SERVICE_ROLE_KEY` | everything server-side | Bypasses RLS. Never ships to a client. |
 | `STRIPE_SECRET_KEY` | checkout, refunds | |
@@ -429,7 +443,44 @@ the site URL and the Pingen base, which points at staging on purpose.
 | `CRON_SECRET` | dispatch | Vercel Cron sends it as `Authorization: Bearer`. |
 | `RESEND_API_KEY` | email | Unset means emails are logged and skipped, never an error. |
 | `EMAIL_FROM` | email | |
+| `OPERATOR_EMAIL` | dispatch alerts | Unset means a failed send only reaches the logs. |
 | `ENABLE_AI_DRAFT` | draft assist | Off. Not part of v1. |
+
+## Production hardening
+
+**Rate limiting.** `/write` creates rows and a Stripe session on every
+submission and `/cancel` accepts a token from anyone; neither has a login in
+front of it. The counter lives in Postgres, not in memory, because serverless
+process state is per-instance and resets constantly — an in-memory limiter on
+Vercel is decoration. Five checkouts per ten minutes, ten cancel attempts per
+hour, counted **after** validation so somebody fixing a typo five times is not
+mistaken for an attacker. It fails open: a limiter that rejects customers when
+the database hiccups has turned a small outage into lost sales.
+
+**Response headers.** HSTS, `nosniff`, `X-Frame-Options: DENY` (a cancel form
+inside someone else's frame is a clickjacking target), a strict referrer
+policy, a closed `Permissions-Policy`, and `Cross-Origin-Opener-Policy`.
+`poweredByHeader` is off. There is deliberately **no CSP**: Next injects
+inline scripts for hydration, so a real policy needs per-request nonces
+through middleware, and one loose enough to allow `unsafe-inline` would be
+decoration rather than protection.
+
+**Error boundaries.** `error.tsx` and `global-error.tsx` show the digest and
+nothing else. An error here can carry a letter body, a recipient address or a
+Stripe id in its message, and none of that belongs on a screen. The global
+boundary styles itself inline, because the root layout failing means there are
+no fonts or tokens to lean on, and it navigates with a plain anchor so the
+browser reloads rather than re-entering the broken tree.
+
+**Crawlers.** `/written` renders a cancel token and `/cancel` redeems one.
+Both are disallowed in `robots.txt`, `/written` is `noindex`, and the sitemap
+lists only the six pages a stranger should find.
+
+**Operator alerts.** The architecture always showed an alert box; the code
+only ever wrote to a log. A run that fails a send, or finds an overdue
+backlog, now emails `OPERATOR_EMAIL` with letter ids and error text — never a
+body, never a recipient address. If that variable is unset the worker says so
+in the log, because "nobody is being told" is itself worth telling.
 
 ## Encryption
 
@@ -507,6 +558,16 @@ config. The suite covers the parts where being wrong is expensive:
   and the optional address line leaves no blank gap when empty.
 - **Withdrawal** — which statuses are withdrawable, and that a malformed token
   is indistinguishable from an unknown one.
+- **Rate limiting** — the bucket never contains the address it was built
+  from, the two actions cannot exhaust each other, and the caller IP is taken
+  from the first hop.
+- **Site URL** — production host beats preview host, because a cancel link in
+  an email outlives the preview deploy that sent it.
+
+Then there is `npm run preflight`, which is the other half: it talks to the
+real Supabase, Stripe, Pingen and Resend with the credentials in the
+environment and prints what answered. Tests prove the logic; preflight proves
+the wiring, and the wiring is what is wrong on launch day.
 
 What is *not* covered, and why: anything needing a live Stripe, Supabase or
 Pingen account. Those are verified by the runbook below, not by mocks that
@@ -572,19 +633,22 @@ mechanism is built; the German text itself has not been reviewed by a lawyer.
 
 In order, because each one gates the next:
 
-1. **Post yourself a real letter** with `scripts/pingen-test-letter.ts`.
+1. **Run `npm run preflight`.** It talks to every dependency and prints a
+   PASS/WARN/FAIL line each, without printing a single value. Nothing below
+   is worth attempting until that is green.
+2. **Post yourself a real letter** with `scripts/pingen-test-letter.ts`.
    Nothing in `src/lib/pingen.ts` or the DIN 5008 address placement has been
    run against a live Pingen account. Until an envelope physically arrives,
    the fulfilment path is *probably* right, not known good.
-2. **Set the environment variables in Vercel.** Until they exist the site
+3. **Set the environment variables in Vercel.** Until they exist the site
    renders but nothing transacts.
-3. **Fill the bracketed placeholders** in `/imprint`, `/privacy` and `/terms`
+4. **Fill the bracketed placeholders** in `/imprint`, `/privacy` and `/terms`
    — operator name, address, telephone, VAT id. They are deliberately not
    invented, and the Impressum says so on its face.
-4. **Run Stripe against a live account** — `stripe listen`, one real card, one
+5. **Run Stripe against a live account** — `stripe listen`, one real card, one
    refund, one expiry. The signature path is tested; an end-to-end payment is
    not.
-5. **Have the consent wording and the goods-vs-service call reviewed.**
+6. **Have the consent wording and the goods-vs-service call reviewed.**
 
 ## Security
 

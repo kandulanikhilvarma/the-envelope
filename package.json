@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --test src/lib/*.test.ts"
+    "test": "node --test src/lib/*.test.ts",
+    "preflight": "node --env-file-if-exists=.env.local scripts/preflight.ts",
+    "pdf-proof": "node --env-file-if-exists=.env.local scripts/pdf-proof.ts",
+    "test-letter": "node --env-file-if-exists=.env.local scripts/pingen-test-letter.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
