@@ -7,12 +7,14 @@ import { seal } from "@/lib/crypto.ts";
 import { db, toBytea } from "@/lib/db.ts";
 import { type LetterDraft, validateDraft } from "@/lib/letters.ts";
 import { breakdown, isSku } from "@/lib/pricing.ts";
+import { callerIp, COMPOSE_LIMIT, withinLimit } from "@/lib/rate-limit.ts";
 import { createCheckoutSession } from "@/lib/stripe.ts";
 
 export async function composeLetter(
   _previous: ComposeState,
   formData: FormData,
 ): Promise<ComposeState> {
+  const requestHeaders = await headers();
   const sku = String(formData.get("sku") ?? "single");
   if (!isSku(sku)) {
     return { error: "Pick a letter or a pair.", field: "sku" };
@@ -78,6 +80,16 @@ export async function composeLetter(
     };
   }
 
+  // Limited here rather than at the top of the action: everything above is
+  // validation, and somebody fixing a typo five times is not an attacker.
+  // What needs guarding is the part that writes rows and calls Stripe.
+  if (!(await withinLimit(COMPOSE_LIMIT, callerIp(requestHeaders)))) {
+    return {
+      error:
+        "That is a lot of letters at once. Give it a few minutes and try again.",
+    };
+  }
+
   const supabase = db();
   const { grossCents, vatCents } = breakdown(sku);
 
@@ -134,7 +146,6 @@ export async function composeLetter(
     .update({ stripe_session_id: session.id })
     .eq("id", order.id);
 
-  const requestHeaders = await headers();
   await supabase.from("consent_log").insert({
     order_id: order.id,
     art9_ack: art9Ack,

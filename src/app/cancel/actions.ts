@@ -1,5 +1,7 @@
 "use server";
 
+import { headers } from "next/headers";
+import { CANCEL_LIMIT, callerIp, withinLimit } from "@/lib/rate-limit.ts";
 import type { CancelState } from "@/lib/consent.ts";
 import { withdrawByToken } from "@/lib/withdraw.ts";
 
@@ -7,6 +9,14 @@ export async function cancelLetter(
   _previous: CancelState,
   formData: FormData,
 ): Promise<CancelState> {
+  // Anyone can post here. The token is 122 bits, so this is about keeping a
+  // script from hammering the database rather than about guessing.
+  if (!(await withinLimit(CANCEL_LIMIT, callerIp(await headers())))) {
+    return {
+      error: "Too many attempts. Wait a few minutes and try once more.",
+    };
+  }
+
   const token = String(formData.get("token") ?? "");
 
   try {

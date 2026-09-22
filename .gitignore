@@ -46,3 +46,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Proof artefacts from scripts/pdf-proof.ts
+/letter-proof.pdf
+*.proof.pdf
