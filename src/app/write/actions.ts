@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { CONSENT_TEXT_VERSION, type ComposeState } from "@/lib/consent.ts";
 import { seal } from "@/lib/crypto.ts";
 import { db, toBytea } from "@/lib/db.ts";
-import { validateDraft } from "@/lib/letters.ts";
+import { type LetterDraft, validateDraft } from "@/lib/letters.ts";
 import { breakdown, isSku } from "@/lib/pricing.ts";
 import { createCheckoutSession } from "@/lib/stripe.ts";
 
@@ -35,6 +35,38 @@ export async function composeLetter(
     return { error: draft.message, field: draft.field };
   }
 
+  const drafts: LetterDraft[] = [draft.value];
+
+  // The pair SKU sells two letters to one date. It has to produce two rows:
+  // charging €29 and storing a single letter would be taking money for
+  // something the form explicitly promises.
+  if (sku === "pair") {
+    const sameAddress = formData.get("sameAddress") === "on";
+
+    const second = validateDraft({
+      body: formData.get("body_2"),
+      deliverOn: formData.get("deliverOn"),
+      recipient: sameAddress
+        ? draft.value.recipient
+        : {
+            name: formData.get("name_2"),
+            line1: formData.get("line1_2"),
+            line2: formData.get("line2_2"),
+            postcode: formData.get("postcode_2"),
+            city: formData.get("city_2"),
+            country: formData.get("country_2"),
+          },
+    });
+
+    if (!second.ok) {
+      // The second letter's inputs carry a _2 suffix, so the form can
+      // highlight the field the customer actually needs to fix.
+      return { error: second.message, field: `${second.field}_2` };
+    }
+
+    drafts.push(second.value);
+  }
+
   // Both boxes are required and neither is pre-ticked. The burden of proving
   // consent sits with the operator, so what was agreed is recorded verbatim.
   const art9Ack = formData.get("art9") === "on";
@@ -48,11 +80,6 @@ export async function composeLetter(
 
   const supabase = db();
   const { grossCents, vatCents } = breakdown(sku);
-
-  // The letter body is far larger than Stripe's metadata limit, so it is
-  // sealed and stored first. It stays 'pending_payment' — and therefore
-  // invisible to the dispatch worker — until the webhook promotes it.
-  const sealed = seal(draft.value.body);
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
@@ -71,26 +98,31 @@ export async function composeLetter(
     return { error: "We could not start checkout. Please try again." };
   }
 
-  const { data: letter, error: letterError } = await supabase
-    .from("letters")
-    .insert({
-      order_id: order.id,
-      content_ciphertext: toBytea(sealed.ciphertext),
-      content_iv: toBytea(sealed.iv),
-      key_version: sealed.keyVersion,
-      recipient: draft.value.recipient,
-      deliver_on: draft.value.deliverOn,
-      status: "pending_payment",
-    })
-    .select("id")
-    .single();
+  // Letter bodies are far larger than Stripe's metadata limit, so they are
+  // sealed and stored first. They stay 'pending_payment' — and therefore
+  // invisible to the dispatch worker — until the webhook promotes them.
+  // Each letter gets its own IV: seal() never reuses one.
+  const { error: letterError } = await supabase.from("letters").insert(
+    drafts.map((d) => {
+      const sealed = seal(d.body);
+      return {
+        order_id: order.id,
+        content_ciphertext: toBytea(sealed.ciphertext),
+        content_iv: toBytea(sealed.iv),
+        key_version: sealed.keyVersion,
+        recipient: d.recipient,
+        deliver_on: d.deliverOn,
+        status: "pending_payment",
+      };
+    }),
+  );
 
-  if (letterError || !letter) {
+  if (letterError) {
     console.error("Could not store letter", letterError);
     return { error: "We could not save your letter. Please try again." };
   }
 
-  const session = await createCheckoutSession({ sku, letterId: letter.id });
+  const session = await createCheckoutSession({ sku, orderId: order.id });
   if (!session.url) {
     return { error: "Stripe did not return a checkout link. Please retry." };
   }

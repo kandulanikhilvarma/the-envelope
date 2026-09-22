@@ -12,15 +12,16 @@ export function stripe(): Stripe {
 }
 
 /**
- * Creates the hosted Checkout session for one letter.
+ * Creates the hosted Checkout session for one order.
  *
- * The letter itself is already in the database in 'pending_payment' — a
- * letter body is far larger than Stripe's 500-character metadata limit, so
- * only its id travels with the session.
+ * The letters are already in the database in 'pending_payment' — a letter
+ * body is far larger than Stripe's 500-character metadata limit, so only the
+ * order id travels with the session. The order, not the letter, because the
+ * pair SKU produces two letters and both have to be promoted by one webhook.
  */
 export async function createCheckoutSession(opts: {
   sku: Sku;
-  letterId: string;
+  orderId: string;
 }): Promise<Stripe.Checkout.Session> {
   const { grossCents } = breakdown(opts.sku);
 
@@ -41,7 +42,7 @@ export async function createCheckoutSession(opts: {
         },
       },
     ],
-    metadata: { letter_id: opts.letterId, sku: opts.sku },
+    metadata: { order_id: opts.orderId, sku: opts.sku },
     success_url: `${siteUrl()}/written?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl()}/write?cancelled=1`,
   });
@@ -67,3 +68,13 @@ export function parseWebhookEvent(
 export async function refund(paymentIntentId: string): Promise<void> {
   await stripe().refunds.create({ payment_intent: paymentIntentId });
 }
+
+/**
+ * Events this webhook acts on. Anything else is acknowledged and ignored —
+ * Stripe sends a great deal more than a product this small needs.
+ */
+export const HANDLED_EVENTS = [
+  "checkout.session.completed",
+  "checkout.session.expired",
+  "charge.refunded",
+] as const;

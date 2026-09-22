@@ -26,7 +26,7 @@ function sign(
   });
 }
 
-function sessionCompleted(sessionId: string, letterId: string): string {
+function sessionCompleted(sessionId: string, orderId: string): string {
   return JSON.stringify({
     id: "evt_test_1",
     object: "event",
@@ -35,7 +35,7 @@ function sessionCompleted(sessionId: string, letterId: string): string {
       object: {
         id: sessionId,
         object: "checkout.session",
-        metadata: { letter_id: letterId, sku: "single" },
+        metadata: { order_id: orderId, sku: "single" },
         customer_details: { email: "buyer@example.test" },
       },
     },
@@ -53,14 +53,14 @@ afterEach(() => {
 
 describe("parseWebhookEvent", () => {
   it("accepts a correctly signed payload", () => {
-    const letterId = "11111111-1111-1111-1111-111111111111";
-    const payload = sessionCompleted("cs_test_1", letterId);
+    const orderId = "11111111-1111-1111-1111-111111111111";
+    const payload = sessionCompleted("cs_test_1", orderId);
 
     const event = parseWebhookEvent(payload, sign(payload));
 
     assert.equal(event.type, "checkout.session.completed");
     const session = event.data.object as Stripe.Checkout.Session;
-    assert.equal(session.metadata?.letter_id, letterId);
+    assert.equal(session.metadata?.order_id, orderId);
   });
 
   it("rejects a payload signed with a different secret", () => {
