@@ -13,36 +13,45 @@ flowchart TB
 
     subgraph vercel["Vercel — Next.js App Router"]
         MKT["Marketing pages<br/>RSC, static"]
-        APP["Compose + Checkout<br/>Server Actions"]
+        APP["/write — Server Action<br/>validate, seal, store, checkout"]
+        CXL["/cancel — Server Action<br/>erase + refund by token"]
         HOOK["/api/stripe/webhook<br/>signature verified"]
         CRON["/api/cron/dispatch<br/>shared-secret protected"]
     end
 
     V --> MKT
     MKT --> APP
+    V --> CXL
 
-    subgraph supa["Supabase — Postgres"]
-        ORD[("orders<br/>stripe_session_id UNIQUE")]
-        LET[("letters<br/>ciphertext + key_version<br/>CHECK deliver_on &lt;= created_at + 5y")]
-        CON[("consent_log<br/>withdrawal + Art.9 consent")]
+    subgraph supa["Supabase — Postgres, RLS on every table"]
+        ORD[("orders<br/>stripe_session_id UNIQUE<br/>cancel_token UNIQUE")]
+        LET[("letters<br/>ciphertext + key_version<br/>CHECK deliver_on &lt;= created_on + 5y")]
+        CON[("consent_log<br/>Art. 9 + withdrawal ack")]
         HB[("cron_heartbeat<br/>last_run_at")]
     end
 
-    APP -->|"create pending order"| ORD
-    HOOK -->|"persist order + encrypted letter<br/>idempotent on session id"| LET
-    HOOK --> CON
+    APP -->|"order + sealed letters<br/>status pending_payment"| LET
+    APP --> ORD
+    APP --> CON
+    HOOK -->|"pending_payment to scheduled<br/>or erase on expiry / refund"| LET
+    CXL -->|"null ciphertext, status withdrawn"| LET
     CRON -->|"CAS scheduled to sending<br/>FOR UPDATE SKIP LOCKED"| LET
     CRON --> HB
 
-    STRIPE{{"Stripe Checkout<br/>EUR 19 / EUR 29 · 19% VAT"}}
+    STRIPE{{"Stripe Checkout<br/>EUR 19 / EUR 29 · 19% VAT inclusive"}}
     APP -->|"create session"| STRIPE
-    STRIPE -->|"checkout.session.completed"| HOOK
+    STRIPE -->|"completed / expired / refunded"| HOOK
+    CXL -->|"refunds.create"| STRIPE
 
-    SCHED{{"Scheduler<br/>pg_cron or Vercel Cron<br/>daily 08:00 CET"}}
+    MAIL{{"Resend<br/>confirmation + pre-send notice"}}
+    HOOK --> MAIL
+    CRON --> MAIL
+
+    SCHED{{"Vercel Cron<br/>daily 06:00 UTC"}}
     SCHED --> CRON
 
     PIN{{"Pingen API<br/>letters.create"}}
-    CRON -->|"decrypt, then send"| PIN
+    CRON -->|"decrypt, render PDF, send"| PIN
     PIN --> DP["Deutsche Post"]
     DP --> RCP(["Recipient mailbox"])
 

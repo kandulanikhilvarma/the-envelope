@@ -35,16 +35,16 @@ export default async function WrittenPage({
       </h1>
       <p className="mt-5 text-lg text-muted">
         Your letter is encrypted and waiting. We&rsquo;ll print and post it on
-        the morning of the date you chose, and email you shortly before so you
-        can correct the address if it has changed.
+        the morning of the date you chose, and email you about a week before
+        so you can correct the address if it has changed.
       </p>
 
       {cancelToken ? (
         <div className="mt-10 rounded-sm border border-line bg-surface p-6">
           <h2 className="font-display text-xl">Keep this reference</h2>
           <p className="mt-2 text-muted">
-            It is the only way to cancel the letter, and we cannot show it to
-            you again.
+            It is the only way to cancel the letter, and this page will not
+            show it to you again. A copy is in your confirmation email.
           </p>
           <p className="mt-4 break-all rounded-sm border border-line bg-bg px-3 py-2 font-mono text-sm">
             {cancelToken}
@@ -59,8 +59,10 @@ export default async function WrittenPage({
         </div>
       ) : (
         <p className="mt-10 text-muted">
-          Check the receipt Stripe emailed you — it has the reference you will
-          need if you ever want to cancel.
+          Your confirmation email carries the reference you need to cancel. If
+          it has not arrived within a few minutes, check your spam folder and
+          then email us — we can send it again to the address you paid with,
+          and only to that address.
         </p>
       )}
 

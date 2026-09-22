@@ -1,10 +1,21 @@
 import { open, secretsMatch } from "@/lib/crypto.ts";
 import { db, fromBytea, type LetterRow } from "@/lib/db.ts";
+import { preSendNoticeEmail, sendEmail } from "@/lib/email.ts";
+import type { Recipient } from "@/lib/letters.ts";
 import { renderLetterPdf } from "@/lib/pdf.ts";
 import { sendLetter } from "@/lib/pingen.ts";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * The dispatch worker. Runs daily; posts every letter that has come due.
+ * The daily worker. Two passes, in this order:
+ *
+ *   1. Notices — email the purchaser a week before their letter goes out, so
+ *      a stale address can be corrected. Promised on the compose form, the
+ *      confirmation page and the confirmation email.
+ *   2. Dispatch — post every letter that has come due.
+ *
+ * Notices run first so a letter never gets posted in the same run that was
+ * supposed to warn about it.
  *
  * Two things keep a letter from being posted twice:
  *   1. claim_due_letters() flips 'scheduled' -> 'sending' inside a single
@@ -19,6 +30,10 @@ export const maxDuration = 300;
 
 const BATCH_SIZE = 50;
 const MAX_ATTEMPTS = 5;
+
+/** How far ahead the pre-send notice goes out. */
+const NOTICE_LEAD_DAYS = 7;
+const NOTICE_BATCH_SIZE = 100;
 
 /**
  * Vercel Cron calls with GET and `Authorization: Bearer $CRON_SECRET`;
@@ -60,6 +75,7 @@ async function dispatch(request: Request): Promise<Response> {
   }
 
   const supabase = db();
+  const notices = await sendNotices(supabase);
 
   const { data: claimed, error: claimError } = await supabase.rpc(
     "claim_due_letters",
@@ -152,6 +168,76 @@ async function dispatch(request: Request): Promise<Response> {
     claimed: letters.length,
     sent,
     failed,
+    notices,
     overdue: overdue ?? null,
   });
+}
+
+type NoticeRow = {
+  letter_id: string;
+  deliver_on: string;
+  recipient: Recipient;
+  purchaser_email: string | null;
+  cancel_token: string;
+};
+
+/**
+ * Emails everyone whose letter goes out within the next week.
+ *
+ * claim_letters_to_notify stamps notified_at inside the same UPDATE that
+ * selects the rows, so two overlapping runs cannot both write to the same
+ * person. If the send then fails the stamp is cleared and tomorrow's run
+ * tries again: a notice a day late beats the same notice twice.
+ *
+ * Never throws. A mail outage must not stop letters being posted.
+ */
+async function sendNotices(
+  supabase: SupabaseClient,
+): Promise<{ notified: number; failed: number }> {
+  const { data, error } = await supabase.rpc("claim_letters_to_notify", {
+    lead_days: NOTICE_LEAD_DAYS,
+    batch_size: NOTICE_BATCH_SIZE,
+  });
+
+  if (error) {
+    console.error("Could not claim letters to notify", error);
+    return { notified: 0, failed: 0 };
+  }
+
+  let notified = 0;
+  let failed = 0;
+
+  for (const row of (data ?? []) as NoticeRow[]) {
+    if (!row.purchaser_email) {
+      // Paid with no email on the order. Nothing to retry, so the claim
+      // stands and the letter still goes out on its date.
+      console.error("Letter has no address to notify", {
+        letterId: row.letter_id,
+      });
+      failed += 1;
+      continue;
+    }
+
+    const outcome = await sendEmail(
+      row.purchaser_email,
+      preSendNoticeEmail({
+        deliverOn: row.deliver_on,
+        recipient: row.recipient,
+        cancelToken: row.cancel_token,
+      }),
+    );
+
+    if (outcome.sent) {
+      notified += 1;
+      continue;
+    }
+
+    failed += 1;
+    await supabase
+      .from("letters")
+      .update({ notified_at: null })
+      .eq("id", row.letter_id);
+  }
+
+  return { notified, failed };
 }

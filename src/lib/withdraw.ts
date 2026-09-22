@@ -70,20 +70,7 @@ export async function withdrawByToken(
   // Destroy the content first. If the refund then fails, the customer is out
   // of pocket until a human fixes it, which is recoverable; leaving a letter
   // readable after promising deletion is not.
-  const { data: withdrawn, error: updateError } = await supabase
-    .from("letters")
-    .update({
-      status: "withdrawn",
-      content_ciphertext: null,
-      content_iv: null,
-      key_version: null,
-      last_error: null,
-    })
-    .eq("order_id", order.id)
-    .in("status", WITHDRAWABLE)
-    .select("id");
-
-  if (updateError) throw updateError;
+  const withdrawn = await eraseLetters(order.id);
 
   let refunded = false;
   if (order.status === "paid" && order.stripe_payment_intent_id) {
@@ -98,5 +85,32 @@ export async function withdrawByToken(
       .eq("id", order.id);
   }
 
-  return { ok: true, lettersWithdrawn: withdrawn?.length ?? 0, refunded };
+  return { ok: true, lettersWithdrawn: withdrawn.length, refunded };
+}
+
+/**
+ * Erases the letters behind one order and marks them withdrawn. Returns the
+ * ids actually erased, which is empty on a second call.
+ *
+ * Separate from withdrawByToken because two other paths need the same
+ * erasure without a refund: an expired checkout, where nothing was ever
+ * paid, and a refund issued directly in the Stripe dashboard, where the
+ * money has already gone back.
+ */
+export async function eraseLetters(orderId: string): Promise<string[]> {
+  const { data, error } = await db()
+    .from("letters")
+    .update({
+      status: "withdrawn",
+      content_ciphertext: null,
+      content_iv: null,
+      key_version: null,
+      last_error: null,
+    })
+    .eq("order_id", orderId)
+    .in("status", WITHDRAWABLE)
+    .select("id");
+
+  if (error) throw error;
+  return (data ?? []).map((row) => row.id as string);
 }

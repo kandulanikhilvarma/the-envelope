@@ -4,34 +4,41 @@ title: The Envelope — Checkout (money path)
 sequenceDiagram
     autonumber
     actor U as Customer
-    participant A as Next.js App
+    participant A as Server Action
+    participant DB as Supabase
     participant S as Stripe
     participant W as Webhook handler
-    participant DB as Supabase
+    participant M as Email
 
-    U->>A: compose letter, delivery date, recipient address
-    A->>A: zod validate — horizon <= 5y, address shape
-    A->>U: consent gate (unticked, required)
-    Note over A,U: Art. 9 explicit consent for special-category content.<br/>Withdrawal terms depend on the goods-vs-service<br/>classification, which is still an open decision.
+    U->>A: letter(s), delivery date, recipient address, SKU
+    A->>A: validate — horizon &lt;= 5y, body length, address shape
+    Note over A,U: Both consent boxes are required and neither is<br/>pre-ticked. The pair SKU must yield two letters.
 
-    U->>A: accept + submit
-    A->>S: create Checkout Session (EUR 19 / EUR 29, 19% VAT)
-    S-->>U: hosted payment page
-    U->>S: pay
+    A->>A: seal each body — AES-256-GCM, fresh IV, active key_version
+    A->>DB: INSERT order (placeholder session id, status pending)
+    A->>DB: INSERT letters (ciphertext, iv, key_version, pending_payment)
+    Note over A,DB: Stored before payment: a letter body is far larger<br/>than Stripe metadata allows. pending_payment is<br/>invisible to the dispatch worker.
 
-    S->>W: checkout.session.completed
-    W->>W: verify webhook signature
-    W->>W: encrypt letter body (AES-256-GCM, current key_version)
+    A->>S: create Checkout Session (metadata.order_id)
+    A->>DB: UPDATE order SET stripe_session_id = real id
+    A->>DB: INSERT consent_log (text_version, ip, user_agent)
+    A-->>U: redirect to hosted payment page
 
-    W->>DB: INSERT order ON CONFLICT (stripe_session_id) DO NOTHING
-    alt first delivery of this event
-        DB-->>W: inserted
-        W->>DB: INSERT letter (ciphertext, iv, key_version, status='scheduled')
-        W->>DB: INSERT consent_log (text_version, ip, ts)
-        W-->>U: confirmation email
-    else replay / duplicate event
-        DB-->>W: no-op
-        W-->>S: 200 OK (idempotent)
+    alt paid
+        U->>S: pay
+        S->>W: checkout.session.completed
+        W->>W: verify signature against the raw body
+        W->>DB: UPDATE order SET paid, payment_intent_id WHERE session id
+        W->>DB: UPDATE letters SET scheduled WHERE status = pending_payment
+        alt rows promoted
+            W->>M: confirmation email with cancel token
+            W-->>S: 200
+        else replay — zero rows matched
+            W-->>S: 200, nothing done
+        end
+    else abandoned
+        S->>W: checkout.session.expired
+        W->>DB: erase ciphertext, status withdrawn
     end
 
-    Note over U,DB: If a withdrawal window is honored, cancel sets<br/>status='withdrawn', refunds via Stripe, hard-deletes ciphertext.
+    Note over U,DB: A later refund in the Stripe dashboard arrives as<br/>charge.refunded and erases the letters the same way,<br/>so money back always means the letter is stopped.
