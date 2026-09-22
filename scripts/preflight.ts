@@ -21,6 +21,24 @@ type Check = { name: string; status: Status; detail: string };
 
 const results: Check[] = [];
 
+/**
+ * PostgREST sometimes returns an error whose message is empty — a HEAD
+ * request has no body to put one in. Falling back to the code and hint keeps
+ * the report from printing a bare table name and nothing else.
+ */
+function describe(error: {
+  message?: string;
+  code?: string;
+  hint?: string | null;
+  details?: string | null;
+}): string {
+  return (
+    [error.message, error.code, error.details, error.hint]
+      .filter((part) => part)
+      .join(" / ") || "failed with no message"
+  );
+}
+
 function record(name: string, status: Status, detail: string): void {
   results.push({ name, status, detail });
 }
@@ -109,7 +127,7 @@ async function checkDatabase(): Promise<void> {
       const { count, error } = await supabase
         .from(table)
         .select("*", { count: "exact", head: true });
-      if (error) throw new Error(`${table}: ${error.message}`);
+      if (error) throw new Error(`${table}: ${describe(error)}`);
       counts.push(`${table} ${count ?? 0}`);
     }
 
@@ -120,13 +138,13 @@ async function checkDatabase(): Promise<void> {
   // 'sending' and strand them, so it is deliberately not exercised.
   await check("database — notice column", async () => {
     const { error } = await db().from("letters").select("notified_at").limit(1);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(describe(error));
     return "letters.notified_at present (migration 0004 applied)";
   });
 
   await check("database — overdue_letter_count()", async () => {
     const { data, error } = await db().rpc("overdue_letter_count");
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(describe(error));
     return `${data ?? 0} overdue`;
   });
 
@@ -136,7 +154,7 @@ async function checkDatabase(): Promise<void> {
       p_limit: 1,
       p_window_seconds: 60,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(describe(error));
     if (data !== true) throw new Error("first call was already rejected");
     return "consume_rate_limit() reachable (migration 0005 applied)";
   });
