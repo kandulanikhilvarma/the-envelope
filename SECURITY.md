@@ -4,7 +4,7 @@
 
 Email the operator directly. Do not open a public issue for a vulnerability.
 
-## The encryption keyring — read this before touching `lib/crypto`
+## The encryption keyring, read this before touching `lib/crypto`
 
 Letter bodies are encrypted at rest with AES-256-GCM. A letter written today
 may not be decrypted until five years from now.
@@ -35,7 +35,7 @@ letter contains GDPR Article 9 special-category data:
 
 - Real values live in Vercel and Supabase environment settings only.
 - `.env.example` holds placeholders and is the only env file committed.
-- `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS — server contexts only.
+- `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS, server contexts only.
 - The dispatch route is guarded by `CRON_SECRET`; without it the endpoint is
   world-invokable by anyone who guesses the path.
 
@@ -43,5 +43,5 @@ letter contains GDPR Article 9 special-category data:
 
 If the service stops operating, undelivered letters are posted early or
 returned to the sender, and stored letter data is destroyed on a published
-timetable. This is a commitment to customers, not an internal aspiration —
+timetable. This is a commitment to customers, not an internal aspiration,
 changing it is a customer-facing change.

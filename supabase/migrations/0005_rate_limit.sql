@@ -21,7 +21,7 @@ create table public.rate_limit (
 alter table public.rate_limit enable row level security;
 
 comment on table public.rate_limit is
-  'Transient counters. bucket is "<action>:<sha256 of ip>" — never a raw address.';
+  'Transient counters. bucket is "<action>:<sha256 of ip>", never a raw address.';
 
 -- ── consume_rate_limit ───────────────────────────────────────────────
 -- Counts one hit and answers whether it is still within the allowance.

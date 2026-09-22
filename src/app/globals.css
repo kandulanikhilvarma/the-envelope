@@ -1,21 +1,34 @@
 @import "tailwindcss";
 
 /* ── Elegant Keepsake palette ─────────────────────────────────────────
-   60-30-10: ivory base / warm ink / oxblood-wax accent.
-   Every value below is contrast-checked against its own surface.
-   --gold FAILS AA on ivory (2.93:1). Decorative only: rules, dividers,
-   seal filigree. Never put text in it.
+   Colour logic: a warm neutral base (paper), one saturated primary
+   (oxblood wax, used for every call to action), an analogous metallic
+   (antique gold, decorative), and a single complementary accent (sage,
+   used only for "confirmed" and "sealed" states). 60 / 30 / 10.
+
+   Every text pairing below was measured against WCAG 2.2 AA (4.5:1) in
+   both themes. --gold FAILS AA on ivory (2.93:1) and is decorative only:
+   rules, dividers, seal filigree. Text in gold uses --gold-text.
    ------------------------------------------------------------------- */
 
 :root {
-  --bg: #fbf7f0; /* ivory — warm paper, not stark white */
-  --surface: #f3eadb; /* cream — cards, stationery blocks */
-  --ink: #2a2420; /* warm ink — body copy, 14.0:1 on --bg */
-  --seal: #7b2d26; /* oxblood wax — every CTA, 8.75:1 on --bg */
-  --seal-ink: #fbf7f0; /* text on a --seal fill, 9.35:1 */
+  --bg: #fbf7f0; /* ivory, warm paper rather than stark white */
+  --surface: #f3eadb; /* cream: bands and stationery blocks */
+  --surface-2: #f0e6d4; /* raised cream: chips, inputs on cream */
+  --paper: #fffdf8; /* letter sheets and cards, 15.1:1 with --ink */
+  --ink: #2a2420; /* warm ink, 14.3:1 on --bg */
+  --muted: #6f6458; /* captions and meta, 4.66:1 on the darkest cream */
+  --line: #e0d4c0; /* hairline rules */
+  --line-strong: #cbb99c; /* input borders */
+  --seal: #7b2d26; /* oxblood wax, 8.76:1 on --bg */
+  --seal-strong: #5e211c; /* hover and pressed */
+  --seal-ink: #fbf7f0; /* text on a --seal fill */
+  --seal-soft: #f4e4de; /* tinted fills; --seal text on it is 7.57:1 */
   --gold: #b08d3b; /* decorative only, see note above */
-  --muted: #6f6458; /* captions/meta, 5.41:1 on --bg */
-  --line: #e0d4c0; /* hairline rules on ivory */
+  --gold-text: #7a5f1f; /* gold that can carry text, 5.64:1 */
+  --sage: #3d5a47; /* confirmation text, 7.15:1 */
+  --sage-soft: #e4ebe2;
+  --shadow-rgb: 42 36 32;
 }
 
 /* Dark: the light-mode oxblood sits at 1.89:1 on the dark base, so --seal
@@ -24,44 +37,256 @@
   :root:not([data-theme="light"]) {
     --bg: #1c1815;
     --surface: #262019;
-    --ink: #f3eadb; /* 14.8:1 on --bg */
-    --seal: #d9695c; /* 5.14:1 on --bg */
-    --seal-ink: #1c1815;
-    --gold: #c9a961;
+    --surface-2: #2f2821;
+    --paper: #2a241e;
+    --ink: #f3eadb;
     --muted: #b3a695;
     --line: #3a3128;
+    --line-strong: #52463a;
+    --seal: #e07869;
+    --seal-strong: #e8887b;
+    --seal-ink: #1c1815;
+    --seal-soft: #3b231f;
+    --gold: #c9a961;
+    --gold-text: #d8bb74;
+    --sage: #9dc3a8;
+    --sage-soft: #1f2d25;
+    --shadow-rgb: 0 0 0;
   }
 }
 
 :root[data-theme="dark"] {
   --bg: #1c1815;
   --surface: #262019;
+  --surface-2: #2f2821;
+  --paper: #2a241e;
   --ink: #f3eadb;
-  --seal: #d9695c;
-  --seal-ink: #1c1815;
-  --gold: #c9a961;
   --muted: #b3a695;
   --line: #3a3128;
+  --line-strong: #52463a;
+  --seal: #e07869;
+  --seal-strong: #e8887b;
+  --seal-ink: #1c1815;
+  --seal-soft: #3b231f;
+  --gold: #c9a961;
+  --gold-text: #d8bb74;
+  --sage: #9dc3a8;
+  --sage-soft: #1f2d25;
+  --shadow-rgb: 0 0 0;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-paper: var(--paper);
   --color-ink: var(--ink);
-  --color-seal: var(--seal);
-  --color-seal-ink: var(--seal-ink);
-  --color-gold: var(--gold);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-seal: var(--seal);
+  --color-seal-strong: var(--seal-strong);
+  --color-seal-ink: var(--seal-ink);
+  --color-seal-soft: var(--seal-soft);
+  --color-gold: var(--gold);
+  --color-gold-text: var(--gold-text);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
 
   --font-display: var(--font-fraunces);
   --font-body: var(--font-source-serif);
+
+  --shadow-card:
+    0 1px 2px rgb(var(--shadow-rgb) / 0.06),
+    0 12px 32px -12px rgb(var(--shadow-rgb) / 0.22);
+  --shadow-lift:
+    0 2px 4px rgb(var(--shadow-rgb) / 0.08),
+    0 24px 48px -16px rgb(var(--shadow-rgb) / 0.3);
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-rise: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-stamp: stamp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-1.5deg);
+    }
+    50% {
+      transform: translateY(-10px) rotate(-0.5deg);
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes stamp {
+    from {
+      opacity: 0;
+      transform: scale(1.6) rotate(-12deg);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) rotate(0);
+    }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-body), Georgia, "Times New Roman", serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--seal);
+  color: var(--seal-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 3px;
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.375rem;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.0625rem;
+    line-height: 1.25;
+    transition:
+      background-color 150ms,
+      border-color 150ms,
+      box-shadow 150ms,
+      transform 150ms;
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .btn-primary {
+    background: var(--seal);
+    color: var(--seal-ink);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.15) inset,
+      0 8px 20px -10px var(--seal);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--seal-strong);
+  }
+  .btn-secondary {
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--ink);
+  }
+  .btn-inverse {
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .btn-inverse:hover {
+    background: var(--surface);
+  }
+
+  .link {
+    color: var(--seal);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    text-decoration-color: color-mix(in srgb, var(--seal) 40%, transparent);
+    transition: text-decoration-color 150ms;
+  }
+  .link:hover {
+    text-decoration-color: var(--seal);
+  }
+
+  .eyebrow {
+    font-size: 0.8125rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .field {
+    margin-top: 0.375rem;
+    width: 100%;
+    border-radius: 0.375rem;
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    padding: 0.625rem 0.75rem;
+    color: var(--ink);
+    transition:
+      border-color 150ms,
+      box-shadow 150ms;
+  }
+  .field:hover {
+    border-color: var(--muted);
+  }
+  .field:focus-visible {
+    outline: none;
+    border-color: var(--seal);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 22%, transparent);
+  }
+  .field[aria-invalid="true"] {
+    border-color: var(--seal);
+    background: var(--seal-soft);
+  }
+
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    background: var(--paper);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Faint laid-paper texture: an SVG noise tile inlined, no request. */
+  .paper-grain {
+    position: relative;
+    isolation: isolate;
+  }
+  .paper-grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .3 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Long-form legal and policy pages. */
+  .prose-page h2 {
+    margin-top: 2.5rem;
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 1.375rem;
+    letter-spacing: -0.01em;
+  }
+  .prose-page p,
+  .prose-page li {
+    color: var(--muted);
+    line-height: 1.7;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

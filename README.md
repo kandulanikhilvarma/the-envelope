@@ -1,7 +1,7 @@
 # The Envelope
 
 Write a letter today. We seal it, hold it encrypted, and post it on paper on a
-date you choose — up to five years out.
+date you choose, up to five years out.
 
 A wedding and anniversary keepsake. One-time purchase: **€19** for a single
 letter, **€29** for a couple's pair. Operated from Germany, printed and posted
@@ -17,11 +17,12 @@ through Pingen on Deutsche Post rails.
 - [Getting started](#getting-started)
 - [Architecture](#architecture)
   - [System context](#system-context)
-  - [Checkout — the money path](#checkout--the-money-path)
-  - [Notice, trigger and fulfilment — the mail path](#notice-trigger-and-fulfilment--the-mail-path)
+  - [Checkout, the money path](#checkout--the-money-path)
+  - [Notice, trigger and fulfilment, the mail path](#notice-trigger-and-fulfilment--the-mail-path)
 - [Data model](#data-model)
 - [The letter state machine](#the-letter-state-machine)
 - [Pages](#pages)
+- [Design system](#design-system)
 - [Project layout](#project-layout)
 - [Environment](#environment)
 - [Production hardening](#production-hardening)
@@ -42,8 +43,8 @@ Next.js 16 (App Router, RSC, Turbopack) · TypeScript · Tailwind v4 · Supabase
 Postgres 17 · Stripe Checkout · Pingen · Resend · deployed on Vercel.
 
 Five runtime dependencies: `next`, `react`, `@supabase/supabase-js`, `stripe`,
-and `pdfkit` for the printed page. Everything else — validation, encryption,
-email, date arithmetic — is a few dozen lines against the standard library,
+and `pdfkit` for the printed page. Everything else, validation, encryption,
+email, date arithmetic, is a few dozen lines against the standard library,
 because that was less code than wiring a library in.
 
 ## Getting started
@@ -63,9 +64,9 @@ npm run dev
 | `npm test` | Node's own test runner over `src/lib/*.test.ts` |
 | `npm run preflight` | Talks to every real dependency and reports what is wired and what is not |
 | `npm run pdf-proof` | Renders a letter and checks the address lands in the DIN 5008 window |
-| `npm run test-letter` | Posts one real letter through Pingen — the week-zero gate |
+| `npm run test-letter` | Posts one real letter through Pingen, the week-zero gate |
 
-`next typegen` must run before `tsc` — Next generates the route types that
+`next typegen` must run before `tsc`, Next generates the route types that
 `layout.tsx` and `page.tsx` depend on.
 
 Database migrations in [`supabase/migrations/`](supabase/migrations/) apply in
@@ -77,14 +78,14 @@ addressed by name through `supabase-js`.
 ## Architecture
 
 Source of the diagrams below: [`docs/architecture/`](docs/architecture/). All
-three are validated Mermaid and are kept in step with the code — if a diagram
+three are validated Mermaid and are kept in step with the code, if a diagram
 and a file disagree, the diagram is the bug.
 
 ### System context
 
 ```mermaid
 ---
-title: The Envelope — System Context
+title: The Envelope, System Context
 ---
 flowchart TB
     subgraph acq["Acquisition"]
@@ -96,10 +97,10 @@ flowchart TB
     TT --> V
     WP --> V
 
-    subgraph vercel["Vercel — Next.js App Router"]
+    subgraph vercel["Vercel, Next.js App Router"]
         MKT["Marketing pages<br/>RSC, static"]
-        APP["/write — Server Action<br/>validate, seal, store, checkout"]
-        CXL["/cancel — Server Action<br/>erase + refund by token"]
+        APP["/write, Server Action<br/>validate, seal, store, checkout"]
+        CXL["/cancel, Server Action<br/>erase + refund by token"]
         HOOK["/api/stripe/webhook<br/>signature verified"]
         CRON["/api/cron/dispatch<br/>shared-secret protected"]
     end
@@ -108,7 +109,7 @@ flowchart TB
     MKT --> APP
     V --> CXL
 
-    subgraph supa["Supabase — Postgres, RLS on every table"]
+    subgraph supa["Supabase, Postgres, RLS on every table"]
         ORD[("orders<br/>stripe_session_id UNIQUE<br/>cancel_token UNIQUE")]
         LET[("letters<br/>ciphertext + key_version<br/>CHECK deliver_on &lt;= created_on + 5y")]
         CON[("consent_log<br/>Art. 9 + withdrawal ack")]
@@ -148,19 +149,19 @@ Two things about this shape are deliberate and easy to get wrong:
 
 **The letter is written to the database before payment, not after.** A letter
 body runs to twelve thousand characters; Stripe metadata holds five hundred.
-So the letter is sealed and stored first, in `pending_payment` — a state the
-dispatch worker cannot see — and the webhook only promotes it. An abandoned
+So the letter is sealed and stored first, in `pending_payment`, a state the
+dispatch worker cannot see, and the webhook only promotes it. An abandoned
 checkout never leaves that state, and `checkout.session.expired` erases it.
 
 **Nothing customer-facing ever holds a database credential.** Every table has
 RLS enabled with no permissive policy, so the anon key reads nothing at all.
 All writes go through the service role, server-side only.
 
-### Checkout — the money path
+### Checkout, the money path
 
 ```mermaid
 ---
-title: The Envelope — Checkout (money path)
+title: The Envelope, Checkout (money path)
 ---
 sequenceDiagram
     autonumber
@@ -172,10 +173,10 @@ sequenceDiagram
     participant M as Email
 
     U->>A: letter(s), delivery date, recipient address, SKU
-    A->>A: validate — horizon &lt;= 5y, body length, address shape
+    A->>A: validate, horizon &lt;= 5y, body length, address shape
     Note over A,U: Both consent boxes are required and neither is<br/>pre-ticked. The pair SKU must yield two letters.
 
-    A->>A: seal each body — AES-256-GCM, fresh IV, active key_version
+    A->>A: seal each body, AES-256-GCM, fresh IV, active key_version
     A->>DB: INSERT order (placeholder session id, status pending)
     A->>DB: INSERT letters (ciphertext, iv, key_version, pending_payment)
     Note over A,DB: Stored before payment: a letter body is far larger<br/>than Stripe metadata allows. pending_payment is<br/>invisible to the dispatch worker.
@@ -194,7 +195,7 @@ sequenceDiagram
         alt rows promoted
             W->>M: confirmation email with cancel token
             W-->>S: 200
-        else replay — zero rows matched
+        else replay, zero rows matched
             W-->>S: 200, nothing done
         end
     else abandoned
@@ -210,7 +211,7 @@ Three webhook events are handled, and each one exists to close a hole:
 | Event | Without it |
 |---|---|
 | `checkout.session.completed` | Nothing is ever posted. |
-| `checkout.session.expired` | Every abandoned cart leaves an encrypted letter in the table forever — personal data kept with no purpose left to serve. |
+| `checkout.session.expired` | Every abandoned cart leaves an encrypted letter in the table forever, personal data kept with no purpose left to serve. |
 | `charge.refunded` | A refund issued in the Stripe dashboard gives the money back **and still posts the letter**. |
 
 Prices are never taken from the client. `src/lib/pricing.ts` is the only place
@@ -218,11 +219,11 @@ an amount exists, VAT is derived from the gross figure by subtraction so net +
 VAT always equals exactly what was charged, and there are no Stripe price ids
 to drift out of step with it.
 
-### Notice, trigger and fulfilment — the mail path
+### Notice, trigger and fulfilment, the mail path
 
 ```mermaid
 ---
-title: The Envelope — Notice, trigger and fulfilment (mail path)
+title: The Envelope, Notice, trigger and fulfilment (mail path)
 ---
 sequenceDiagram
     autonumber
@@ -237,11 +238,11 @@ sequenceDiagram
     Note over SCH,WK: Wrong or missing secret returns 404, not 401:<br/>an anonymous caller learns nothing.
 
     rect rgb(243, 234, 219)
-        Note over WK,M: Pass 1 — the pre-send notice
+        Note over WK,M: Pass 1, the pre-send notice
         WK->>DB: claim_letters_to_notify(lead_days = 7)
         Note over WK,DB: notified_at is stamped inside the same UPDATE,<br/>so two runs cannot both email one person.
         loop each claimed letter
-            WK->>M: notice — delivery date, full address, cancel token
+            WK->>M: notice, delivery date, full address, cancel token
             alt send failed
                 WK->>DB: UPDATE letters SET notified_at = null
                 Note over WK,DB: Tomorrow retries. Late beats twice.
@@ -250,8 +251,8 @@ sequenceDiagram
     end
 
     rect rgb(243, 234, 219)
-        Note over WK,P: Pass 2 — dispatch
-        WK->>DB: claim_due_letters() — CAS to sending, SKIP LOCKED
+        Note over WK,P: Pass 2, dispatch
+        WK->>DB: claim_due_letters(), CAS to sending, SKIP LOCKED
         Note over WK,DB: deliver_on &lt;= current_date, so a missed run<br/>catches up instead of skipping a day forever.
         loop each claimed letter
             WK->>WK: decrypt via keyring[key_version]
@@ -262,7 +263,7 @@ sequenceDiagram
                 WK->>DB: status sent, pingen_id, sent_at
             else failure
                 WK->>DB: status retry, or failed after 5 attempts
-                WK->>OP: alert — send failed, body never logged
+                WK->>OP: alert, send failed, body never logged
             end
         end
     end
@@ -270,7 +271,7 @@ sequenceDiagram
     WK->>DB: UPDATE cron_heartbeat SET last_run_at, last_sent_count
     WK->>DB: overdue_letter_count()
     alt backlog present
-        WK->>OP: alert — letters overdue, scheduler may be dead
+        WK->>OP: alert, letters overdue, scheduler may be dead
     end
 
     Note over SCH,OP: An external watchdog on cron_heartbeat.last_run_at<br/>catches the scheduler stopping altogether, which is<br/>otherwise silent until someone's letter arrives late.
@@ -293,25 +294,25 @@ catches up instead of silently skipping that day's letters forever.
 Four tables. [`supabase/migrations/0001_initial_schema.sql`](supabase/migrations/0001_initial_schema.sql)
 carries the reasoning inline.
 
-**`orders`** — one row per purchase. `stripe_session_id` is unique, which is
+**`orders`**, one row per purchase. `stripe_session_id` is unique, which is
 what makes webhook replay a no-op. `cancel_token` is a random uuid with a
 unique index: a bearer credential, because there are no accounts.
-`stripe_payment_intent_id` is captured by the webhook — you can refund a
+`stripe_payment_intent_id` is captured by the webhook, you can refund a
 payment intent, not a Checkout Session.
 
-**`letters`** — one row per letter, two for the pair SKU. Holds
+**`letters`**, one row per letter, two for the pair SKU. Holds
 `content_ciphertext`, `content_iv` and `key_version`; never plaintext. All
 three are nulled on withdrawal, so a deleted letter is actually gone rather
 than merely flagged.
 
-**`consent_log`** — append-only. The burden of proving consent sits with the
+**`consent_log`**, append-only. The burden of proving consent sits with the
 operator, so what was agreed is recorded with its text version, IP and user
 agent, against the order, rather than as a boolean on it.
 
-**`cron_heartbeat`** — one row. Lets an external watchdog notice the scheduler
+**`cron_heartbeat`**, one row. Lets an external watchdog notice the scheduler
 has stopped, which is otherwise silent until somebody's letter arrives late.
 
-**`rate_limit`** — transient counters for the two paths a stranger can post
+**`rate_limit`**, transient counters for the two paths a stranger can post
 to. The bucket key holds a SHA-256 of the caller's IP, never the address, and
 the daily worker sweeps rows older than a day.
 
@@ -336,7 +337,7 @@ tail of [`0004_pre_send_notice.sql`](supabase/migrations/0004_pre_send_notice.sq
 exist: **every function is revoked from `public`, `anon` and `authenticated`
 and granted only to `service_role`.** Without it,
 `/rest/v1/rpc/claim_due_letters` hands recipient addresses to anyone holding
-the anon key — and strands every row it touches in `sending`.
+the anon key, and strands every row it touches in `sending`.
 
 ## The letter state machine
 
@@ -371,25 +372,46 @@ refunding it would be refunding something already delivered.
 
 | Route | Rendering | What it is |
 |---|---|---|
-| `/` | Static | Landing. One headline, one CTA above the fold. |
-| `/write` | Static shell + client form | Compose, date, address, SKU, consent. The only interactive surface. |
-| `/written` | Dynamic | Post-payment. Shows the cancel token once. `noindex`. |
+| `/` | Static | Landing: hero, four-step timeline, six occasions, example letter, pricing, commitments, FAQ with JSON-LD. |
+| `/write` | Dynamic + client form | Package, letters, date presets, address, consent, with a live paper preview and a draft kept in `sessionStorage` for the tab. `?occasion=` swaps the writing prompts, `?sku=pair` preselects the pair, `?cancelled=1` explains a cancelled payment. |
+| `/written` | Dynamic | Post-payment. Lists each sealed letter, shows the cancel token once with a copy button, offers an `.ics` calendar file, and clears the draft. `noindex`. |
 | `/cancel` | Static shell + client form | Redeem a cancel token: erases the letter and refunds. |
 | `/promise` | Static | The wind-down promise, in plain words. |
 | `/privacy` | Static | GDPR Art. 13 notice. |
 | `/terms` | Static | Terms of sale, including the cancellation right. |
-| `/imprint` | Static | §5 TMG Impressum. Linked from every page footer. |
+| `/imprint` | Static | §5 DDG Impressum. Linked from every page footer. |
 | `/api/stripe/webhook` | Dynamic | Signature-verified. Three events. |
 | `/api/cron/dispatch` | Dynamic | Notices, then dispatch. 404s without the secret. |
 | `/robots.txt` | Static | Keeps `/written`, `/cancel` and the API out of search results. |
 | `/sitemap.xml` | Static | The six pages a stranger should be able to find. |
+| `/opengraph-image`, `/apple-icon`, `/icon.svg`, `/manifest.webmanifest` | Static | Share card and icons, generated from the seal artwork at build time. |
 | `not-found.tsx` | Static | 404, with the three places people actually meant to go. |
 | `error.tsx` / `global-error.tsx` | Client | Error boundaries. Show a digest, never the error text. |
 
-The compose form is the only Client Component in the product. Everything it
-accepts is re-validated in the Server Action, because nothing typed in a
-browser is trusted — and the date bounds it renders are computed server-side
-so they cannot be edited in the page.
+Everything the compose form accepts is re-validated in the Server Action,
+because nothing typed in a browser is trusted. Its inputs are controlled so a
+server-side validation error never wipes a long letter, and the date bounds
+are computed per request so they cannot go stale between deploys.
+
+## Design system
+
+- **Colour.** Warm neutral base (ivory paper), one saturated primary
+  (oxblood wax) reserved for actions, an analogous antique gold for
+  decoration, and a single complementary sage for confirmed states. Every
+  text pairing passes WCAG 2.2 AA in both themes; the ratios are noted
+  beside each token in `globals.css`.
+- **Type.** Fraunces for display (roman and italic), Source Serif 4 for
+  body, both self-hosted by `next/font`.
+- **Imagery.** Inline SVG illustrations in `components/art.tsx`, drawn with
+  the colour tokens so they follow light and dark mode, stay sharp at any
+  density, and weigh a few kilobytes. The only raster image is the share
+  card, rendered to PNG at build time.
+- **Components.** `.btn`, `.field`, `.card`, `.link` and `.eyebrow` live in
+  `globals.css`; the header, footer and logo in `components/site-chrome.tsx`;
+  the icon set in `components/icons.tsx`.
+- **Motion.** Three short CSS animations (float, rise, stamp), all disabled
+  under `prefers-reduced-motion`.
+- **Copy.** Plain, professional language with no em dashes.
 
 ## Project layout
 
@@ -404,9 +426,17 @@ src/
     api/stripe/webhook/    three Stripe events
     api/cron/dispatch/     daily notices + dispatch
     globals.css            design tokens, light and dark
+    opengraph-image.tsx    share card, rendered at build time
+  components/
+    art.tsx                SVG illustrations and the wax seal
+    icons.tsx              stroke icon set
+    site-chrome.tsx        header, footer, logo
   lib/
     crypto.ts              AES-256-GCM keyring: seal, open, secretsMatch
     letters.ts             validation and the horizon cap
+    occasions.ts           occasion cards and writing prompts
+    ics.ts                 calendar file for the posting date
+    draft.ts               sessionStorage key for the unsent draft
     pricing.ts             the only place a price exists
     stripe.ts              checkout session, signature parsing, refunds
     pingen.ts              token → upload slot → letters.create
@@ -451,7 +481,7 @@ the site URL and the Pingen base, which points at staging on purpose.
 **Rate limiting.** `/write` creates rows and a Stripe session on every
 submission and `/cancel` accepts a token from anyone; neither has a login in
 front of it. The counter lives in Postgres, not in memory, because serverless
-process state is per-instance and resets constantly — an in-memory limiter on
+process state is per-instance and resets constantly, an in-memory limiter on
 Vercel is decoration. Five checkouts per ten minutes, ten cancel attempts per
 hour, counted **after** validation so somebody fixing a typo five times is not
 mistaken for an attacker. It fails open: a limiter that rejects customers when
@@ -478,7 +508,7 @@ lists only the six pages a stranger should find.
 
 **Operator alerts.** The architecture always showed an alert box; the code
 only ever wrote to a log. A run that fails a send, or finds an overdue
-backlog, now emails `OPERATOR_EMAIL` with letter ids and error text — never a
+backlog, now emails `OPERATOR_EMAIL` with letter ids and error text, never a
 body, never a recipient address. If that variable is unset the worker says so
 in the log, because "nobody is being told" is itself worth telling.
 
@@ -498,7 +528,7 @@ copy.
 
 AES-256-GCM, 12-byte IV generated fresh per letter, 16-byte auth tag appended
 to the ciphertext. The plaintext is decrypted exactly once, in the dispatch
-worker, on the morning it is printed. It is never logged — not in an error
+worker, on the morning it is printed. It is never logged, not in an error
 path, not in a failure message, not in an email.
 
 ## Idempotency
@@ -508,8 +538,8 @@ that lives in the database rather than in a handler:
 
 | Boundary | Guard |
 |---|---|
-| Stripe webhook replay | `orders.stripe_session_id` unique; every letter transition carries a status predicate, so a replay matches zero rows — including the email, which only sends when rows were actually promoted. |
-| Two cron runs overlapping | `claim_due_letters()` — compare-and-swap inside one `UPDATE` with `FOR UPDATE SKIP LOCKED`. |
+| Stripe webhook replay | `orders.stripe_session_id` unique; every letter transition carries a status predicate, so a replay matches zero rows, including the email, which only sends when rows were actually promoted. |
+| Two cron runs overlapping | `claim_due_letters()`, compare-and-swap inside one `UPDATE` with `FOR UPDATE SKIP LOCKED`. |
 | Pingen retry after a lost response | `Idempotency-Key` is the letter's own id. |
 | Two cron runs both emailing | `notified_at` is stamped by the claiming `UPDATE`; a failed send clears it so tomorrow retries. |
 | Cancel token reuse | The erase is scoped to withdrawable statuses, so a second attempt erases nothing and reports `already_withdrawn`. |
@@ -520,7 +550,7 @@ Two plain-text messages, both promises the interface already makes:
 
 **Confirmation**, sent by the webhook once payment clears, carrying the cancel
 token. There are no accounts, so this is the only durable copy the customer
-ends up holding — the confirmation page shows it once and never again.
+ends up holding, the confirmation page shows it once and never again.
 
 **Pre-send notice**, sent seven days ahead by the worker, quoting the stored
 address in full. Correcting a stale address is the entire point, so the
@@ -541,27 +571,27 @@ entire storage design.
 npm test
 ```
 
-Node's own runner over `src/lib/*.test.ts` — no framework, no fixtures, no
+Node's own runner over `src/lib/*.test.ts`, no framework, no fixtures, no
 config. The suite covers the parts where being wrong is expensive:
 
-- **Crypto** — round-trip equals input, ciphertext never equals plaintext, a
+- **Crypto**, round-trip equals input, ciphertext never equals plaintext, a
   tampered tag fails, a missing key version throws loudly rather than
   returning junk.
-- **Stripe signatures** — real HMACs built with Stripe's own
+- **Stripe signatures**, real HMACs built with Stripe's own
   `generateTestHeaderString`, including the case that catches the classic bug:
   a payload re-serialised into identical-looking JSON is rejected, because the
   bytes changed.
-- **Pricing** — net plus VAT equals gross exactly, for both SKUs.
-- **Horizon** — the cap, the leap-day rollover, dates that look real but do
+- **Pricing**, net plus VAT equals gross exactly, for both SKUs.
+- **Horizon**, the cap, the leap-day rollover, dates that look real but do
   not exist (`2027-02-31`), and the boundary at exactly five years.
-- **Email** — the cancel token is present, both addresses appear for a pair,
+- **Email**, the cancel token is present, both addresses appear for a pair,
   and the optional address line leaves no blank gap when empty.
-- **Withdrawal** — which statuses are withdrawable, and that a malformed token
+- **Withdrawal**, which statuses are withdrawable, and that a malformed token
   is indistinguishable from an unknown one.
-- **Rate limiting** — the bucket never contains the address it was built
+- **Rate limiting**, the bucket never contains the address it was built
   from, the two actions cannot exhaust each other, and the caller IP is taken
   from the first hop.
-- **Site URL** — production host beats preview host, because a cancel link in
+- **Site URL**, production host beats preview host, because a cancel link in
   an email outlives the preview deploy that sent it.
 
 Then there is `npm run preflight`, which is the other half: it talks to the
@@ -577,7 +607,7 @@ would only prove the mocks agree with themselves.
 
 **Daily.** Vercel Cron calls `/api/cron/dispatch` at 06:00 UTC. It returns
 `{ claimed, sent, failed, notices, overdue }`. A non-zero `overdue` means
-letters are past their date and still unsent — the scheduler stopped, or
+letters are past their date and still unsent, the scheduler stopped, or
 Pingen is rejecting everything.
 
 **Watchdog.** `cron_heartbeat.last_run_at` is the one signal that catches the
@@ -643,9 +673,9 @@ In order, because each one gates the next:
 3. **Set the environment variables in Vercel.** Until they exist the site
    renders but nothing transacts.
 4. **Fill the bracketed placeholders** in `/imprint`, `/privacy` and `/terms`
-   — operator name, address, telephone, VAT id. They are deliberately not
+   (operator name, address, telephone, VAT id). They are deliberately not
    invented, and the Impressum says so on its face.
-5. **Run Stripe against a live account** — `stripe listen`, one real card, one
+5. **Run Stripe against a live account**, `stripe listen`, one real card, one
    refund, one expiry. The signature path is tested; an end-to-end payment is
    not.
 6. **Have the consent wording and the goods-vs-service call reviewed.**

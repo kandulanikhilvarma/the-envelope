@@ -6,7 +6,7 @@ import { parseWebhookEvent } from "./stripe.ts";
 /**
  * Real signature verification, not a mock. Stripe's SDK can produce a valid
  * signature header for a known secret, so the same HMAC path that runs in
- * production runs here — only the secret is fake.
+ * production runs here, only the secret is fake.
  *
  * What this cannot cover: that Stripe's live servers send what we expect.
  * That needs `stripe listen` against a real account.

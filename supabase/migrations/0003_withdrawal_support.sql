@@ -3,16 +3,16 @@
 -- docs/legal/classification.md records this as the conservative reading: if
 -- the sale is a service, the 14-day withdrawal right survives, because a
 -- letter delivered next year is not "fully performed" inside the window.
--- Building it is cheap — fulfilment is pay-at-send, so nothing has been
--- spent — and it is the fallback position if the personalised-goods
+-- Building it is cheap, fulfilment is pay-at-send, so nothing has been
+-- spent, and it is the fallback position if the personalised-goods
 -- argument is ever challenged.
 --
 -- Two columns are needed:
 --
---   stripe_payment_intent_id — you cannot refund a Checkout Session, only
+--   stripe_payment_intent_id, you cannot refund a Checkout Session, only
 --   the payment intent behind it. Captured by the webhook.
 --
---   cancel_token — there are no user accounts, so possession of an
+--   cancel_token, there are no user accounts, so possession of an
 --   unguessable token is what authorises a cancel. 122 bits of randomness,
 --   shown once on the confirmation page. Not the order id, which should
 --   never double as a credential.

@@ -7,7 +7,7 @@
  * "works" are different claims, and the gap between them is a letter that
  * silently never arrives.
  *
- * Usage — fill .env.local first, then:
+ * Usage, fill .env.local first, then:
  *
  *   node --env-file=.env.local scripts/pingen-test-letter.ts \
  *     --name "Your Name" \

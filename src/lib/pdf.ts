@@ -6,7 +6,7 @@ import type { Recipient } from "./letters.ts";
  *
  * The address block position matters: Pingen prints into a windowed
  * envelope, so the recipient block has to land inside the DIN 5008 window.
- * Getting this wrong produces a letter that is posted and undeliverable —
+ * Getting this wrong produces a letter that is posted and undeliverable,
  * confirm the placement against a real printed test letter before trusting
  * it, which is what the week-zero live test is for.
  */

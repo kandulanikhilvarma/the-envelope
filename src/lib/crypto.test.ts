@@ -26,7 +26,7 @@ describe("seal/open", () => {
 
   it("round-trips multi-byte characters", () => {
     withKeyring({ "1": KEY_1 }, "1");
-    const plaintext = "Grüße, Liebling — 💌 我爱你";
+    const plaintext = "Grüße, Liebling, 💌 我爱你";
 
     assert.equal(open(seal(plaintext)), plaintext);
   });

@@ -20,7 +20,7 @@ export function optionalEnv(name: string, fallback: string): string {
  *
  * Falls back to the host Vercel injects, so a deploy made before anyone sets
  * NEXT_PUBLIC_SITE_URL still publishes its own address rather than
- * localhost — which would otherwise end up in robots.txt, the sitemap and
+ * localhost, which would otherwise end up in robots.txt, the sitemap and
  * every Stripe redirect.
  *
  * Production host before preview host on purpose: a confirmation email can

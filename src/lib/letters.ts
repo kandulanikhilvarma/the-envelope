@@ -61,6 +61,12 @@ export function defaultDeliverOn(today: IsoDate = todayIso()): IsoDate {
   return addMonths(today, HORIZON_DEFAULT_MONTHS);
 }
 
+/** The earliest date the form will accept (tomorrow), for `min`. */
+export function minDeliverOn(today: IsoDate = todayIso()): IsoDate {
+  const [y, m, d] = today.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}
+
 /** The latest date the form will accept, for the `max` attribute. */
 export function maxDeliverOn(today: IsoDate = todayIso()): IsoDate {
   return addYears(today, HORIZON_MAX_YEARS);

@@ -3,14 +3,14 @@ import Link from "next/link";
 import { HORIZON_MAX_YEARS } from "@/lib/letters.ts";
 
 export const metadata: Metadata = {
-  title: "Privacy — The Envelope",
+  title: "Privacy",
   description:
     "What we store, why, how long for, and how to make us delete it.",
 };
 
 /**
  * OPERATOR: the bracketed values below are the only things missing. A German
- * e-commerce lawyer should read this before launch — the structure follows
+ * e-commerce lawyer should read this before launch, the structure follows
  * GDPR Art. 13, but "follows the structure" is not the same as "is correct
  * for your business".
  */
@@ -20,16 +20,8 @@ const CONTACT = "[contact email]";
 export default function PrivacyPage() {
   return (
     <>
-      <header className="border-b border-line">
-        <div className="mx-auto w-full max-w-2xl px-4 py-5">
-          <Link href="/" className="font-display text-xl tracking-tight">
-            The Envelope
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-14">
-        <h1 className="font-display text-3xl tracking-tight sm:text-4xl">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-16 sm:px-6 sm:py-20">
+        <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
           Privacy
         </h1>
         <p className="mt-5 text-lg text-muted">
@@ -43,7 +35,7 @@ export default function PrivacyPage() {
             {OPERATOR}, contactable at {CONTACT}. See our{" "}
             <Link
               href="/imprint"
-              className="text-seal underline-offset-4 hover:underline"
+              className="link"
             >
               Impressum
             </Link>
@@ -73,7 +65,7 @@ export default function PrivacyPage() {
               <dt className="text-ink">Your order</dt>
               <dd>
                 The amount, the VAT, the date, and the reference Stripe gives
-                us. We never see or store your card details — Stripe handles
+                us. We never see or store your card details; Stripe handles
                 the payment and the number never reaches us.
               </dd>
             </div>
@@ -95,7 +87,7 @@ export default function PrivacyPage() {
           <p className="mt-2 text-muted">
             People write about health, grief, faith and relationships. Under
             Article 9 GDPR that is special-category data, which needs your
-            explicit consent — that is the first checkbox at checkout, and it
+            explicit consent: that is the first checkbox at checkout, and it
             is why it is not pre-ticked.
           </p>
         </section>
@@ -129,7 +121,7 @@ export default function PrivacyPage() {
             ask us to delete it. For deletion you do not need to email anyone:{" "}
             <Link
               href="/cancel"
-              className="text-seal underline-offset-4 hover:underline"
+              className="link"
             >
               cancel the letter
             </Link>{" "}
@@ -146,7 +138,7 @@ export default function PrivacyPage() {
             data is destroyed. See our{" "}
             <Link
               href="/promise"
-              className="text-seal underline-offset-4 hover:underline"
+              className="link"
             >
               wind-down promise
             </Link>
@@ -155,7 +147,7 @@ export default function PrivacyPage() {
         </section>
 
         <p className="mt-12">
-          <Link href="/" className="text-seal underline-offset-4 hover:underline">
+          <Link href="/" className="link">
             Back to the start
           </Link>
         </p>

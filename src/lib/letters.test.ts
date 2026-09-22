@@ -4,6 +4,7 @@ import {
   BODY_MAX_CHARS,
   defaultDeliverOn,
   maxDeliverOn,
+  minDeliverOn,
   validateBody,
   validateDeliverOn,
   validateDraft,
@@ -146,5 +147,17 @@ describe("validateDraft", () => {
 
   it("rejects missing input entirely", () => {
     assert.equal(validateDraft({}, TODAY).ok, false);
+  });
+});
+
+describe("minDeliverOn", () => {
+  it("is tomorrow, and the validator accepts it", () => {
+    assert.equal(minDeliverOn(TODAY), "2026-06-02");
+    assert.equal(validateDeliverOn(minDeliverOn(TODAY), TODAY).ok, true);
+  });
+
+  it("rolls over month and year ends", () => {
+    assert.equal(minDeliverOn("2026-02-28"), "2026-03-01");
+    assert.equal(minDeliverOn("2026-12-31"), "2027-01-01");
   });
 });

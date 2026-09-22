@@ -10,7 +10,7 @@ import type { Recipient } from "./letters.ts";
  * UNVERIFIED AGAINST A LIVE ACCOUNT. The shapes here follow Pingen's v2 API
  * but no request in this file has been run against the real service. The
  * week-zero live test letter is what promotes this from "probably right" to
- * "known good" — do not take real money before that has happened.
+ * "known good", do not take real money before that has happened.
  */
 
 const TOKEN_URL = "https://identity.pingen.com/auth/access-tokens";

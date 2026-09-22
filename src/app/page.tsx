@@ -1,113 +1,234 @@
+import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
+import {
+  Flourish,
+  PostedEnvelopeArt,
+  SealedEnvelopeArt,
+} from "@/components/art.tsx";
+import {
+  ArrowRightIcon,
+  CalendarIcon,
+  CapIcon,
+  CheckIcon,
+  CompassIcon,
+  HeartIcon,
+  LockIcon,
+  MailIcon,
+  PenIcon,
+  PlaneIcon,
+  PrinterIcon,
+  RingsIcon,
+  ShieldIcon,
+  SparkIcon,
+  UndoIcon,
+} from "@/components/icons.tsx";
+import { BODY_MAX_CHARS, HORIZON_MAX_YEARS } from "@/lib/letters.ts";
+import { OCCASIONS, type OccasionKey } from "@/lib/occasions.ts";
+import { breakdown, formatEur } from "@/lib/pricing.ts";
 
-const HORIZON_MAX_YEARS = 5;
+type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
-function SealedEnvelope({ className = "" }: { className?: string }) {
+const SINGLE = formatEur(breakdown("single").grossCents);
+const PAIR = formatEur(breakdown("pair").grossCents);
+
+const OCCASION_ICONS: Record<OccasionKey, IconType> = {
+  wedding: RingsIcon,
+  anniversary: HeartIcon,
+  baby: SparkIcon,
+  graduation: CapIcon,
+  self: CompassIcon,
+  farewell: PlaneIcon,
+};
+
+const STEPS: [IconType, string, string][] = [
+  [
+    PenIcon,
+    "Write your letter",
+    "Type it in your own words, add the address, and choose the date. No account is needed.",
+  ],
+  [
+    LockIcon,
+    "We seal and hold it",
+    "Your letter is encrypted the moment you submit it and stays that way while we hold it.",
+  ],
+  [
+    MailIcon,
+    "We check in first",
+    "About a week before the date, we email you the address we hold so you can correct it.",
+  ],
+  [
+    PrinterIcon,
+    "We post it on the day",
+    "On the morning of your date it is printed, sealed in an envelope, and handed to Deutsche Post.",
+  ],
+];
+
+const FAQ: [string, string][] = [
+  [
+    "Who can read my letter?",
+    "Your letter is encrypted as soon as you submit it. It is decrypted once, by the automated print step on the delivery date. We do not read letters, and the text never appears in any email we send.",
+  ],
+  [
+    "How far ahead can I send it?",
+    `Any date from tomorrow up to ${HORIZON_MAX_YEARS} years from today. We cap the wait so that every promise we make is one we can keep.`,
+  ],
+  [
+    "Is the letter handwritten?",
+    "No. Your words are printed clearly on paper, folded, and posted in a sealed envelope. What arrives is exactly what you wrote.",
+  ],
+  [
+    "Where can you send letters?",
+    "Letters are printed in Germany and posted by Deutsche Post, including to international addresses. Enter the address as it should appear on the envelope.",
+  ],
+  [
+    "What if the address changes?",
+    "About a week before we post, we email you the address we hold. Reply to that email with the new address and we will correct it before printing.",
+  ],
+  [
+    "Can I cancel?",
+    "Yes, at any time before the letter is printed. Use the reference from your confirmation. We delete the letter itself and refund your payment.",
+  ],
+  [
+    "What happens if The Envelope closes?",
+    "Nothing is stranded. Every undelivered letter is either posted early or returned to its writer, and we tell you which before it happens.",
+  ],
+];
+
+function JsonLd() {
+  const data = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: "The Envelope",
+      description:
+        "A letter written today, held encrypted, and posted on paper on a date you choose up to five years ahead.",
+      offers: [
+        {
+          "@type": "Offer",
+          name: "One sealed letter",
+          price: (breakdown("single").grossCents / 100).toFixed(2),
+          priceCurrency: "EUR",
+        },
+        {
+          "@type": "Offer",
+          name: "A couple's pair",
+          price: (breakdown("pair").grossCents / 100).toFixed(2),
+          priceCurrency: "EUR",
+        },
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: FAQ.map(([q, a]) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: a },
+      })),
+    },
+  ];
   return (
-    <svg
-      viewBox="0 0 400 280"
-      role="img"
-      aria-label="A cream envelope closed with a round wax seal"
-      className={className}
-    >
-      <rect
-        x="8"
-        y="8"
-        width="384"
-        height="264"
-        rx="6"
-        fill="var(--surface)"
-        stroke="var(--line)"
-        strokeWidth="2"
-      />
-      <path
-        d="M8 20 L200 160 L392 20"
-        fill="none"
-        stroke="var(--line)"
-        strokeWidth="2"
-      />
-      <path
-        d="M8 268 L150 150 M392 268 L250 150"
-        stroke="var(--line)"
-        strokeWidth="2"
-      />
-      <circle cx="200" cy="168" r="34" fill="var(--seal)" />
-      <circle
-        cx="200"
-        cy="168"
-        r="26"
-        fill="none"
-        stroke="var(--gold)"
-        strokeWidth="1.5"
-        opacity="0.7"
-      />
-      <text
-        x="200"
-        y="177"
-        textAnchor="middle"
-        fontFamily="var(--font-display), Georgia, serif"
-        fontSize="24"
-        fill="var(--seal-ink)"
-      >
-        E
-      </text>
-    </svg>
+    <script
+      type="application/ld+json"
+      // Static, server-built data with no user input in it.
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
+function SectionHeading({
+  eyebrow,
+  title,
+  lead,
+  center = false,
+}: {
+  eyebrow: string;
+  title: string;
+  lead?: string;
+  center?: boolean;
+}) {
+  return (
+    <div className={center ? "mx-auto max-w-2xl text-center" : "max-w-2xl"}>
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 className="mt-3 font-display text-3xl tracking-tight text-balance sm:text-4xl">
+        {title}
+      </h2>
+      {lead ? (
+        <p className="mt-4 text-lg leading-relaxed text-muted text-pretty">
+          {lead}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
 export default function Home() {
   return (
-    <>
-      {/* Trust bar — one only, per the banner spec */}
-      <div className="border-b border-line bg-surface">
-        <p className="mx-auto max-w-5xl px-4 py-2 text-center text-sm text-muted">
-          Sealed on paper · Encrypted until it is printed · Posted from Germany
-        </p>
-      </div>
+    <main className="flex-1">
+      <JsonLd />
 
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5">
-        <span className="font-display text-xl tracking-tight">
-          The Envelope
-        </span>
-        <nav aria-label="Primary">
-          <a
-            href="#how"
-            className="text-sm text-muted underline-offset-4 hover:underline"
-          >
-            How it works
-          </a>
-        </nav>
-      </header>
-
-      <main className="flex-1">
-        {/* Hero — one headline, one sub, ONE call to action.
-            No competing buttons above the fold. */}
-        <section className="mx-auto grid w-full max-w-5xl items-center gap-10 px-4 pb-16 pt-8 lg:grid-cols-2 lg:pt-14">
-          <div>
-            <h1 className="font-display text-4xl leading-tight tracking-tight sm:text-5xl">
+      {/* Hero: one headline, one supporting line, one primary action. */}
+      <section className="paper-grain overflow-hidden">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pb-20 pt-12 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pb-28 lg:pt-20">
+          <div className="animate-rise">
+            <p className="eyebrow">Keepsake letters, posted on the day</p>
+            <h1 className="mt-4 font-display text-[2.6rem] leading-[1.05] tracking-tight text-balance sm:text-6xl">
               Write to your first anniversary.
-              <span className="block text-seal">We post it on the day.</span>
+              <span className="mt-1 block italic text-seal">
+                We post it on the day.
+              </span>
             </h1>
-            <p className="mt-5 max-w-prose text-lg text-muted">
-              A letter you write today, sealed in paper and held until the date
-              you pick — up to {HORIZON_MAX_YEARS} years out. It arrives in the
-              post, not the inbox.
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted text-pretty sm:text-xl">
+              Write a letter today. We seal it, keep it encrypted, and post it
+              on paper on the date you choose, up to {HORIZON_MAX_YEARS} years
+              from now. It arrives in the letterbox, not the inbox.
             </p>
-            <Link
-              href="/write"
-              className="mt-8 inline-block rounded-sm bg-seal px-7 py-3.5 text-lg text-seal-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-seal"
-            >
-              Write your letter — €19
-            </Link>
-            <p className="mt-3 text-sm text-muted">
-              One payment. No account needed. €29 for a couple&rsquo;s pair.
+            <div className="mt-9 flex flex-wrap items-center gap-3">
+              <Link href="/write" className="btn btn-primary px-7 py-3.5">
+                Write your letter
+                <ArrowRightIcon className="size-5" />
+              </Link>
+              <Link href="#how" className="btn btn-secondary px-6 py-3.5">
+                How it works
+              </Link>
+            </div>
+            <p className="mt-4 text-sm text-muted">
+              One payment of {SINGLE}, or {PAIR} for a couple’s pair. No
+              account, no subscription.
             </p>
-          </div>
-          <SealedEnvelope className="w-full max-w-md justify-self-center" />
-        </section>
 
-        <section className="border-y border-line bg-surface">
-          <div className="mx-auto grid max-w-5xl gap-6 px-4 pt-10 sm:grid-cols-3">
+            <ul className="mt-10 grid gap-4 border-t border-line pt-8 text-sm sm:grid-cols-3">
+              {(
+                [
+                  [LockIcon, "Encrypted until printed"],
+                  [PrinterIcon, "Printed and posted in Germany"],
+                  [UndoIcon, "Cancel for a full refund"],
+                ] as [IconType, string][]
+              ).map(([Icon, label]) => (
+                <li key={label} className="flex items-center gap-2.5">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-seal-soft text-seal">
+                    <Icon className="size-[1.1rem]" />
+                  </span>
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
+            <div
+              aria-hidden="true"
+              className="absolute inset-8 -z-10 rounded-full bg-seal/10 blur-3xl"
+            />
+            <SealedEnvelopeArt className="w-full" />
+          </div>
+        </div>
+      </section>
+
+      {/* Market context, labelled honestly as not ours. */}
+      <section className="border-y border-line bg-surface">
+        <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+          <dl className="grid gap-8 sm:grid-cols-3">
             {[
               [
                 "4M+",
@@ -115,131 +236,305 @@ export default function Home() {
               ],
               [
                 "1M+",
-                "people a month write letters to their future selves online",
+                "people a month write to their future selves online",
               ],
               ["€21B", "spent on wedding and anniversary gifts each year"],
             ].map(([stat, label]) => (
-              <div key={stat}>
-                <p className="font-display text-3xl text-seal">{stat}</p>
-                <p className="mt-1 text-sm text-muted">{label}</p>
+              <div key={stat} className="border-l-2 border-gold/60 pl-5">
+                <dt className="font-display text-4xl text-seal">{stat}</dt>
+                <dd className="mt-1 text-sm text-muted">{label}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-8 text-xs text-muted">
+            These figures describe the wider keepsake and gifting market, not
+            this service’s own sales.
+          </p>
+        </div>
+      </section>
+
+      <section id="how" className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6">
+        <SectionHeading
+          eyebrow="How it works"
+          title="Four steps between today and the day it arrives."
+          lead="You write once. Everything after that is our job, and we tell you before anything irreversible happens."
+        />
+        <ol className="relative mt-14 grid gap-10 md:grid-cols-4 md:gap-6">
+          {STEPS.map(([Icon, title, body], i) => (
+            <li key={title} className="relative">
+              {i < STEPS.length - 1 ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-14 right-0 top-6 hidden border-t border-dashed border-line-strong md:block"
+                />
+              ) : null}
+              <span className="relative grid size-12 place-items-center rounded-full border border-line bg-paper text-seal shadow-card">
+                <Icon className="size-5" />
+              </span>
+              <p className="mt-5 font-display text-sm text-gold-text">
+                Step {i + 1}
+              </p>
+              <h3 className="mt-1 font-display text-xl">{title}</h3>
+              <p className="mt-2 leading-relaxed text-muted">{body}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section
+        id="occasions"
+        className="paper-grain border-y border-line bg-surface"
+      >
+        <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6">
+          <SectionHeading
+            eyebrow="Occasions"
+            title="Made for the dates that matter."
+            lead={`Each occasion opens the writing page with prompts to help you begin. Every letter can go to any date within ${HORIZON_MAX_YEARS} years.`}
+          />
+          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {OCCASIONS.map((o) => {
+              const Icon = OCCASION_ICONS[o.key];
+              return (
+                <li key={o.key}>
+                  <Link
+                    href={`/write?occasion=${o.key}`}
+                    className="card group flex h-full flex-col p-6 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-lift"
+                  >
+                    <span className="grid size-11 place-items-center rounded-lg bg-seal-soft text-seal">
+                      <Icon className="size-5" />
+                    </span>
+                    <h3 className="mt-5 font-display text-xl">{o.title}</h3>
+                    <p className="mt-2 flex-1 leading-relaxed text-muted">
+                      {o.summary}
+                    </p>
+                    <span className="mt-5 inline-flex items-center gap-1.5 text-sm text-seal">
+                      Start this letter
+                      <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
+
+      {/* What arrives: an example letter next to the envelope it comes in. */}
+      <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6">
+        <div className="grid items-center gap-14 lg:grid-cols-2">
+          <div>
+            <SectionHeading
+              eyebrow="What arrives"
+              title="Your words, on paper, on the day."
+              lead={`Up to ${BODY_MAX_CHARS.toLocaleString("en")} characters, printed clearly and posted in a sealed envelope. It is the same letter you wrote, delivered a year or five later.`}
+            />
+            <PostedEnvelopeArt className="mt-10 w-full max-w-md" />
+          </div>
+
+          <figure>
+            <div className="card relative px-7 py-10 sm:rotate-1 sm:px-12 sm:py-14">
+              <span className="absolute right-5 top-5 rounded-full border border-line px-3 py-1 text-xs text-muted">
+                Example
+              </span>
+              <div className="space-y-4 font-body text-[1.05rem] leading-relaxed">
+                <p className="text-sm text-muted">12 June 2026</p>
+                <p>Dear Jonas,</p>
+                <p>
+                  It is nearly midnight and your tie is somewhere under the
+                  table. I wanted to write this before the day turns into a
+                  story we tell.
+                </p>
+                <p>
+                  When you read this we will have been married for a year. I
+                  hope we still laugh about the speeches. I hope we kept the
+                  Sunday walks. The moment I remember most is not the vows. It
+                  is you, just before them, straightening my collar with both
+                  hands.
+                </p>
+                <p>Open the good wine. I will be in the kitchen.</p>
+                <p className="font-display text-lg italic">
+                  With all my love,
+                  <br />
+                  Mira
+                </p>
+              </div>
+            </div>
+            <figcaption className="mt-5 text-center text-sm text-muted">
+              An illustrative letter. Yours stays private and encrypted.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="pricing" className="border-y border-line bg-surface">
+        <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6">
+          <SectionHeading
+            center
+            eyebrow="Pricing"
+            title="One payment. Nothing to renew."
+            lead="Printing, postage, encrypted storage and the address check are all included."
+          />
+          <div className="mx-auto mt-14 grid max-w-4xl gap-6 md:grid-cols-2">
+            {[
+              {
+                name: "One sealed letter",
+                price: SINGLE,
+                note: "For one recipient",
+                features: [
+                  `Up to ${BODY_MAX_CHARS.toLocaleString("en")} characters`,
+                  `Any date up to ${HORIZON_MAX_YEARS} years ahead`,
+                  "Encrypted until it is printed",
+                  "Address check one week before posting",
+                  "Cancel before printing for a full refund",
+                ],
+                featured: false,
+              },
+              {
+                name: "A couple’s pair",
+                price: PAIR,
+                note: "Two letters, one date",
+                features: [
+                  "Two letters, sealed separately",
+                  "Posted together on the same date",
+                  "Same address or two different ones",
+                  "Everything included with a single letter",
+                ],
+                featured: true,
+              },
+            ].map((plan) => (
+              <div
+                key={plan.name}
+                className={`card relative flex flex-col p-8 ${
+                  plan.featured ? "border-seal/40 ring-1 ring-seal/20" : ""
+                }`}
+              >
+                {plan.featured ? (
+                  <span className="absolute -top-3 left-8 rounded-full bg-seal px-3 py-1 text-xs tracking-wide text-seal-ink">
+                    For couples
+                  </span>
+                ) : null}
+                <h3 className="font-display text-2xl">{plan.name}</h3>
+                <p className="mt-1 text-sm text-muted">{plan.note}</p>
+                <p className="mt-6 flex items-baseline gap-2">
+                  <span className="font-display text-5xl tracking-tight">
+                    {plan.price}
+                  </span>
+                  <span className="text-sm text-muted">one payment</span>
+                </p>
+                <ul className="mt-7 flex-1 space-y-3">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex gap-3">
+                      <CheckIcon className="mt-0.5 size-5 shrink-0 text-sage" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={plan.featured ? "/write?sku=pair" : "/write"}
+                  className={`btn mt-8 w-full ${plan.featured ? "btn-primary" : "btn-secondary"}`}
+                >
+                  {plan.featured ? "Write your pair" : "Write your letter"}
+                </Link>
               </div>
             ))}
           </div>
-          <p className="mx-auto max-w-5xl px-4 pb-8 pt-6 text-xs text-muted">
-            These figures describe the wider keepsake and gifting market, not
-            this product&rsquo;s own sales.
+          <p className="mt-8 text-center text-sm text-muted">
+            Prices include 19% German VAT. Secure card payment through Stripe.
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section id="how" className="mx-auto w-full max-w-5xl px-4 py-16">
-          <h2 className="font-display text-3xl tracking-tight">How it works</h2>
-          <ol className="mt-8 grid gap-8 sm:grid-cols-3">
-            {[
+      <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6">
+        <SectionHeading
+          eyebrow="Our commitments"
+          title="What happens to your letter while we hold it."
+        />
+        <dl className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2">
+          {(
+            [
               [
-                "Write it",
-                "Type your letter and choose who receives it. Take as long as you like.",
+                LockIcon,
+                "It is encrypted while we hold it",
+                "Your words are encrypted at rest and decrypted once, on the day they are printed.",
               ],
               [
-                "Pick the date",
-                `Any date from a month out to ${HORIZON_MAX_YEARS} years. Most people choose their first anniversary.`,
+                CalendarIcon,
+                `We cap the wait at ${HORIZON_MAX_YEARS} years`,
+                "A promise we can keep. Postage prices and businesses both change more over a decade than most people expect.",
               ],
               [
-                "We post it",
-                "On the morning of that date we print, seal, and hand it to Deutsche Post.",
+                UndoIcon,
+                "You can cancel a pending letter",
+                "Cancelling deletes the letter itself, not only its place in the queue, and refunds your payment.",
               ],
-            ].map(([title, body], i) => (
-              <li key={title}>
-                <span
-                  className="font-display text-sm text-gold"
-                  aria-hidden="true"
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <h3 className="mt-1 font-display text-xl">{title}</h3>
-                <p className="mt-2 text-muted">{body}</p>
-              </li>
+              [
+                ShieldIcon,
+                "If we ever close, nothing is stranded",
+                "Undelivered letters are posted early or returned to you. That commitment is published, not implied.",
+              ],
+            ] as [IconType, string, string][]
+          ).map(([Icon, term, desc]) => (
+            <div key={term} className="flex gap-5">
+              <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-sage-soft text-sage">
+                <Icon className="size-5" />
+              </span>
+              <div>
+                <dt className="font-display text-xl">{term}</dt>
+                <dd className="mt-2 leading-relaxed text-muted">{desc}</dd>
+              </div>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-10">
+          <Link href="/promise" className="link">
+            Read our full wind-down promise
+          </Link>
+        </p>
+      </section>
+
+      <section id="faq" className="border-t border-line bg-surface">
+        <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 py-24 sm:px-6 lg:grid-cols-[1fr_1.6fr]">
+          <SectionHeading
+            eyebrow="Questions"
+            title="Before you seal it."
+            lead="The answers people most often look for. For anything else, the contact details are in the Impressum."
+          />
+          <div className="divide-y divide-line border-y border-line">
+            {FAQ.map(([q, a]) => (
+              <details key={q} className="group py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 font-display text-lg [&::-webkit-details-marker]:hidden">
+                  {q}
+                  <span
+                    aria-hidden="true"
+                    className="grid size-7 shrink-0 place-items-center rounded-full border border-line-strong text-seal transition-transform group-open:rotate-45"
+                  >
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 max-w-prose leading-relaxed text-muted">
+                  {a}
+                </p>
+              </details>
             ))}
-          </ol>
-        </section>
-
-        <section className="border-t border-line bg-surface">
-          <div className="mx-auto w-full max-w-5xl px-4 py-16">
-            <h2 className="font-display text-3xl tracking-tight">
-              What happens to your letter
-            </h2>
-            <dl className="mt-8 grid gap-8 sm:grid-cols-2">
-              {[
-                [
-                  "It is encrypted while we hold it",
-                  "Your words are encrypted at rest and decrypted once, on the day we print them.",
-                ],
-                [
-                  `We cap the wait at ${HORIZON_MAX_YEARS} years`,
-                  "A promise we can actually keep. Postage and businesses both change more than people expect over a decade.",
-                ],
-                [
-                  "You can cancel a pending letter",
-                  "Ask us to cancel and we delete the letter itself, not just the schedule.",
-                ],
-                [
-                  "If we ever close, nothing is stranded",
-                  "Undelivered letters are posted early or returned to you. That promise is published, not implied.",
-                ],
-              ].map(([term, desc]) => (
-                <div key={term}>
-                  <dt className="font-display text-lg">{term}</dt>
-                  <dd className="mt-2 text-muted">{desc}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="mx-auto w-full max-w-5xl px-4 py-20 text-center">
-          <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
+      <section className="bg-ink text-bg">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-24 text-center sm:px-6">
+          <Flourish className="w-28" />
+          <h2 className="mt-6 font-display text-4xl tracking-tight text-balance sm:text-5xl">
             Someone opens this in a year.
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-muted">
+          <p className="mt-5 max-w-xl text-lg opacity-80">
             Write it while the day still feels like this.
           </p>
-          <Link
-            href="/write"
-            className="mt-8 inline-block rounded-sm bg-seal px-7 py-3.5 text-lg text-seal-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-seal"
-          >
-            Write your letter — €19
+          <Link href="/write" className="btn btn-inverse mt-10 px-8 py-4">
+            Write your letter, {SINGLE}
+            <ArrowRightIcon className="size-5" />
           </Link>
-        </section>
-      </main>
-
-      <footer className="border-t border-line">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:justify-between">
-          <span>The Envelope</span>
-          <nav aria-label="Footer" className="flex gap-5">
-            <Link
-              href="/promise"
-              className="underline-offset-4 hover:underline"
-            >
-              Our wind-down promise
-            </Link>
-            <Link
-              href="/privacy"
-              className="underline-offset-4 hover:underline"
-            >
-              Privacy
-            </Link>
-            <Link href="/terms" className="underline-offset-4 hover:underline">
-              Terms
-            </Link>
-            {/* Reachable from every page: §5 TMG requires it. */}
-            <Link
-              href="/imprint"
-              className="underline-offset-4 hover:underline"
-            >
-              Impressum
-            </Link>
-          </nav>
         </div>
-      </footer>
-    </>
+      </section>
+    </main>
   );
 }

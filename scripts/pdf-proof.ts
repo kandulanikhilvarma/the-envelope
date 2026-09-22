@@ -5,7 +5,7 @@
  * Pingen prints into a windowed envelope. If the address falls outside the
  * DIN 5008 window the letter is posted and undeliverable, and you find out
  * weeks later. This checks the geometry without needing a Pingen account. It
- * does not replace the live test letter — it just means the live test is
+ * does not replace the live test letter, it just means the live test is
  * unlikely to fail for this particular reason.
  *
  *   node scripts/pdf-proof.ts [outfile.pdf]
@@ -62,5 +62,5 @@ console.log(
 );
 console.log("");
 console.log("Open it and hold it against a windowed envelope. Geometry being");
-console.log("right on paper is not the same as Pingen accepting it — run");
+console.log("right on paper is not the same as Pingen accepting it, run");
 console.log("scripts/pingen-test-letter.ts for that.");

@@ -30,7 +30,7 @@ function from(): string {
 }
 
 /**
- * Never throws. Email is a courtesy on every path that calls it — a payment
+ * Never throws. Email is a courtesy on every path that calls it, a payment
  * that succeeded must not be reported as failed because a mail provider is
  * down, and a letter must not be blocked from posting for the same reason.
  * Callers decide what a false means for them.
@@ -135,7 +135,7 @@ export function confirmationEmail(opts: {
       "",
       `We will print and post ${plural ? "them" : "it"} on ${longDate(opts.deliverOn)}, and write to you about a week beforehand so you can correct the address if it has changed.`,
       "",
-      plural ? "Going to:" : "Going to:",
+      "Addressed to:",
       "",
       opts.recipients.map(addressLines).join("\n\n"),
       "",
@@ -143,11 +143,11 @@ export function confirmationEmail(opts: {
       "",
       `  ${opts.cancelToken}`,
       "",
-      `Use it at ${siteUrl()}/cancel. Keep it somewhere you will find it again — we cannot look it up for you, and anyone who has it can cancel the letter.`,
+      `Use it at ${siteUrl()}/cancel. Keep it somewhere safe. We cannot look it up for you, and anyone who holds it can cancel the letter.`,
       "",
       "Cancelling deletes the letter itself, not just its place in the queue, and refunds the payment.",
       "",
-      "— The Envelope",
+      "The Envelope",
     ].join("\n"),
   };
 }
@@ -156,7 +156,7 @@ export function confirmationEmail(opts: {
  * Sent once, a week ahead, by the dispatch worker.
  *
  * This is the last chance to change a stale address, so the address we hold
- * is quoted in full — that is the entire point of the email.
+ * is quoted in full: that is the entire point of the email.
  */
 export function preSendNoticeEmail(opts: {
   deliverOn: IsoDate;
@@ -182,7 +182,7 @@ export function preSendNoticeEmail(opts: {
       "",
       "We have not read it. It stays encrypted until the morning it is printed.",
       "",
-      "— The Envelope",
+      "The Envelope",
     ].join("\n"),
   };
 }
@@ -195,7 +195,7 @@ export function preSendNoticeEmail(opts: {
  * why nothing arrived, and a scheduler that stops is silent for longer. This
  * is the one message that goes to the operator rather than a customer.
  *
- * Letter ids and error text only — never a body, never a recipient address.
+ * Letter ids and error text only, never a body, never a recipient address.
  */
 export function operatorAlertEmail(opts: {
   sent: number;

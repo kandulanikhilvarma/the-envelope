@@ -111,8 +111,8 @@ export async function composeLetter(
   }
 
   // Letter bodies are far larger than Stripe's metadata limit, so they are
-  // sealed and stored first. They stay 'pending_payment' — and therefore
-  // invisible to the dispatch worker — until the webhook promotes them.
+  // sealed and stored first. They stay 'pending_payment', and therefore
+  // invisible to the dispatch worker, until the webhook promotes them.
   // Each letter gets its own IV: seal() never reuses one.
   const { error: letterError } = await supabase.from("letters").insert(
     drafts.map((d) => {

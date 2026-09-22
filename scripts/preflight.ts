@@ -22,7 +22,7 @@ type Check = { name: string; status: Status; detail: string };
 const results: Check[] = [];
 
 /**
- * PostgREST sometimes returns an error whose message is empty — a HEAD
+ * PostgREST sometimes returns an error whose message is empty, a HEAD
  * request has no body to put one in. Falling back to the code and hint keeps
  * the report from printing a bare table name and nothing else.
  */
@@ -92,7 +92,7 @@ function checkEnv(): void {
     absent.length === 0 ? "pass" : "warn",
     absent.length === 0
       ? "confirmation, notice and operator alerts can be sent"
-      : `missing: ${absent.join(", ")} — those messages will be logged and skipped`,
+      : `missing: ${absent.join(", ")}, those messages will be logged and skipped`,
   );
 
   const secret = process.env.CRON_SECRET ?? "";
@@ -119,7 +119,7 @@ async function checkCrypto(): Promise<void> {
 // ── Supabase ─────────────────────────────────────────────────────────
 
 async function checkDatabase(): Promise<void> {
-  await check("database — tables", async () => {
+  await check("database, tables", async () => {
     const supabase = db();
     const counts: string[] = [];
 
@@ -136,19 +136,19 @@ async function checkDatabase(): Promise<void> {
 
   // Reads only. Calling claim_due_letters() here would mark real letters as
   // 'sending' and strand them, so it is deliberately not exercised.
-  await check("database — notice column", async () => {
+  await check("database, notice column", async () => {
     const { error } = await db().from("letters").select("notified_at").limit(1);
     if (error) throw new Error(describe(error));
     return "letters.notified_at present (migration 0004 applied)";
   });
 
-  await check("database — overdue_letter_count()", async () => {
+  await check("database, overdue_letter_count()", async () => {
     const { data, error } = await db().rpc("overdue_letter_count");
     if (error) throw new Error(describe(error));
     return `${data ?? 0} overdue`;
   });
 
-  await check("database — rate limiter", async () => {
+  await check("database, rate limiter", async () => {
     const { data, error } = await db().rpc("consume_rate_limit", {
       p_bucket: `preflight:${Date.now()}`,
       p_limit: 1,
@@ -248,7 +248,7 @@ async function checkEmail(): Promise<void> {
     operatorEmail() ? "pass" : "warn",
     operatorEmail()
       ? "a failed dispatch will reach a human"
-      : "OPERATOR_EMAIL unset — failures only reach the logs",
+      : "OPERATOR_EMAIL unset, failures only reach the logs",
   );
 }
 
