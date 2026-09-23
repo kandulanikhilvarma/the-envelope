@@ -7,7 +7,7 @@
 --
 -- Both are SECURITY DEFINER, so RLS does not apply. claim_due_letters is
 -- `returns setof letters`, which means an unauthenticated caller got back
--- recipient names, postal addresses and delivery dates — and, because the
+-- recipient names, postal addresses and delivery dates, and, because the
 -- call also flips rows to 'sending', every letter it touched would be
 -- stranded there and never posted.
 --

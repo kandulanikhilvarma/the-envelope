@@ -2,7 +2,7 @@
 
 ## Branches and commits
 
-- `main` is protected. Branch, then open a PR — no direct pushes.
+- `main` is protected. Branch, then open a PR, no direct pushes.
 - Short-lived feature branches, squash-merged.
 - [Conventional Commits](https://www.conventionalcommits.org/). Subject ≤ 60
   characters, imperative mood, and it should say *why*, not restate the diff.
@@ -26,10 +26,10 @@ CI runs the same four. Red blocks merge.
 - **Validate at trust boundaries**: form input, webhook bodies, and
   third-party API responses. Never trust a shape you did not construct.
   Validators live in `src/lib/` and are plain functions returning a
-  `Result` — no schema library, because length checks and date arithmetic
+  `Result`, no schema library, because length checks and date arithmetic
   do not need one.
 - **Colours come from tokens.** Use `bg-seal` / `text-muted`, never a hex
-  literal in a component. `--gold` fails AA as text — decorative use only.
+  literal in a component. `--gold` fails AA as text, decorative use only.
 - **Prefer the platform.** A native `<input type="date">` beats a date-picker
   dependency. Check what already exists before adding a package.
 - **No swallowed errors.** A bare catch that logs and continues on the payment
@@ -46,11 +46,11 @@ Test the things that lose money or data, not everything:
 - dispatch due-selection, including that a second run mails nothing twice
 
 Tests use the Node built-in runner (`node:test`) and Node's native TypeScript
-stripping — no test framework, no transpile step. A trivial one-liner does not
+stripping, no test framework, no transpile step. A trivial one-liner does not
 need a test.
 
 ## Things that are not up for refactor
 
 The scope guardrails in the README are outcomes of a risk assessment. If you
-think one should change, raise it as an issue first — do not quietly widen
+think one should change, raise it as an issue first, do not quietly widen
 scope in a PR.

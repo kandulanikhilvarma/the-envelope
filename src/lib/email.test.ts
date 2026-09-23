@@ -75,7 +75,7 @@ describe("confirmationEmail", () => {
 });
 
 describe("preSendNoticeEmail", () => {
-  it("quotes the address in full — correcting it is the point", () => {
+  it("quotes the address in full, correcting it is the point", () => {
     const message = preSendNoticeEmail({
       deliverOn: "2027-06-14",
       recipient: grace,

@@ -1,5 +1,5 @@
 ---
-title: The Envelope — Notice, trigger and fulfilment (mail path)
+title: The Envelope, Notice, trigger and fulfilment (mail path)
 ---
 sequenceDiagram
     autonumber
@@ -14,11 +14,11 @@ sequenceDiagram
     Note over SCH,WK: Wrong or missing secret returns 404, not 401:<br/>an anonymous caller learns nothing.
 
     rect rgb(243, 234, 219)
-        Note over WK,M: Pass 1 — the pre-send notice
+        Note over WK,M: Pass 1, the pre-send notice
         WK->>DB: claim_letters_to_notify(lead_days = 7)
         Note over WK,DB: notified_at is stamped inside the same UPDATE,<br/>so two runs cannot both email one person.
         loop each claimed letter
-            WK->>M: notice — delivery date, full address, cancel token
+            WK->>M: notice, delivery date, full address, cancel token
             alt send failed
                 WK->>DB: UPDATE letters SET notified_at = null
                 Note over WK,DB: Tomorrow retries. Late beats twice.
@@ -27,8 +27,8 @@ sequenceDiagram
     end
 
     rect rgb(243, 234, 219)
-        Note over WK,P: Pass 2 — dispatch
-        WK->>DB: claim_due_letters() — CAS to sending, SKIP LOCKED
+        Note over WK,P: Pass 2, dispatch
+        WK->>DB: claim_due_letters(), CAS to sending, SKIP LOCKED
         Note over WK,DB: deliver_on &lt;= current_date, so a missed run<br/>catches up instead of skipping a day forever.
         loop each claimed letter
             WK->>WK: decrypt via keyring[key_version]
@@ -39,7 +39,7 @@ sequenceDiagram
                 WK->>DB: status sent, pingen_id, sent_at
             else failure
                 WK->>DB: status retry, or failed after 5 attempts
-                WK->>OP: alert — send failed, body never logged
+                WK->>OP: alert, send failed, body never logged
             end
         end
     end
@@ -47,7 +47,7 @@ sequenceDiagram
     WK->>DB: UPDATE cron_heartbeat SET last_run_at, last_sent_count
     WK->>DB: overdue_letter_count()
     alt backlog present
-        WK->>OP: alert — letters overdue, scheduler may be dead
+        WK->>OP: alert, letters overdue, scheduler may be dead
     end
 
     Note over SCH,OP: An external watchdog on cron_heartbeat.last_run_at<br/>catches the scheduler stopping altogether, which is<br/>otherwise silent until someone's letter arrives late.

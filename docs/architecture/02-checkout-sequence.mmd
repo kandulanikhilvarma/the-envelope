@@ -1,5 +1,5 @@
 ---
-title: The Envelope — Checkout (money path)
+title: The Envelope, Checkout (money path)
 ---
 sequenceDiagram
     autonumber
@@ -11,10 +11,10 @@ sequenceDiagram
     participant M as Email
 
     U->>A: letter(s), delivery date, recipient address, SKU
-    A->>A: validate — horizon &lt;= 5y, body length, address shape
+    A->>A: validate, horizon &lt;= 5y, body length, address shape
     Note over A,U: Both consent boxes are required and neither is<br/>pre-ticked. The pair SKU must yield two letters.
 
-    A->>A: seal each body — AES-256-GCM, fresh IV, active key_version
+    A->>A: seal each body, AES-256-GCM, fresh IV, active key_version
     A->>DB: INSERT order (placeholder session id, status pending)
     A->>DB: INSERT letters (ciphertext, iv, key_version, pending_payment)
     Note over A,DB: Stored before payment: a letter body is far larger<br/>than Stripe metadata allows. pending_payment is<br/>invisible to the dispatch worker.
@@ -33,7 +33,7 @@ sequenceDiagram
         alt rows promoted
             W->>M: confirmation email with cancel token
             W-->>S: 200
-        else replay — zero rows matched
+        else replay, zero rows matched
             W-->>S: 200, nothing done
         end
     else abandoned

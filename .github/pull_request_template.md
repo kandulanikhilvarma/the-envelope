@@ -13,7 +13,7 @@
 ## Checklist
 
 - [ ] `npm run lint && npm run typecheck && npm run build` pass locally
-- [ ] No hex colours in components — tokens only
+- [ ] No hex colours in components, tokens only
 - [ ] No secrets, keys, or real customer data in the diff
 - [ ] If this touches the money or mail path: idempotency still holds on replay
 - [ ] If this touches `lib/crypto`: no key version was removed

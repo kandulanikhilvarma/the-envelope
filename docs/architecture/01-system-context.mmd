@@ -1,5 +1,5 @@
 ---
-title: The Envelope — System Context
+title: The Envelope, System Context
 ---
 flowchart TB
     subgraph acq["Acquisition"]
@@ -11,10 +11,10 @@ flowchart TB
     TT --> V
     WP --> V
 
-    subgraph vercel["Vercel — Next.js App Router"]
+    subgraph vercel["Vercel, Next.js App Router"]
         MKT["Marketing pages<br/>RSC, static"]
-        APP["/write — Server Action<br/>validate, seal, store, checkout"]
-        CXL["/cancel — Server Action<br/>erase + refund by token"]
+        APP["/write, Server Action<br/>validate, seal, store, checkout"]
+        CXL["/cancel, Server Action<br/>erase + refund by token"]
         HOOK["/api/stripe/webhook<br/>signature verified"]
         CRON["/api/cron/dispatch<br/>shared-secret protected"]
     end
@@ -23,7 +23,7 @@ flowchart TB
     MKT --> APP
     V --> CXL
 
-    subgraph supa["Supabase — Postgres, RLS on every table"]
+    subgraph supa["Supabase, Postgres, RLS on every table"]
         ORD[("orders<br/>stripe_session_id UNIQUE<br/>cancel_token UNIQUE")]
         LET[("letters<br/>ciphertext + key_version<br/>CHECK deliver_on &lt;= created_on + 5y")]
         CON[("consent_log<br/>Art. 9 + withdrawal ack")]

@@ -14,10 +14,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /**
  * The daily worker. Two passes, in this order:
  *
- *   1. Notices — email the purchaser a week before their letter goes out, so
+ *   1. Notices, email the purchaser a week before their letter goes out, so
  *      a stale address can be corrected. Promised on the compose form, the
  *      confirmation page and the confirmation email.
- *   2. Dispatch — post every letter that has come due.
+ *   2. Dispatch, post every letter that has come due.
  *
  * Notices run first so a letter never gets posted in the same run that was
  * supposed to warn about it.

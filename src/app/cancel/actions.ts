@@ -40,7 +40,7 @@ export async function cancelLetter(
             "This letter has already gone to the printers, so we can no longer stop it. Email us and we will tell you what happened to it.",
         };
       default:
-        // Deliberately identical for a wrong token and an unknown one — this
+        // Deliberately identical for a wrong token and an unknown one, this
         // form must not become a way to test whether a token is real.
         return {
           error:

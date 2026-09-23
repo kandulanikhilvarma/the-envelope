@@ -12,7 +12,7 @@ labels: enhancement
 
 **Does this widen scope?**
 
-The README lists guardrails that exist for legal and financial reasons —
+The README lists guardrails that exist for legal and financial reasons,
 date-only triggers, the 5-year cap, no third-party letters, pay-at-send.
 
 - [ ] This change leaves all of them intact

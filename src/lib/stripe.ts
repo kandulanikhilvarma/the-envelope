@@ -14,7 +14,7 @@ export function stripe(): Stripe {
 /**
  * Creates the hosted Checkout session for one order.
  *
- * The letters are already in the database in 'pending_payment' — a letter
+ * The letters are already in the database in 'pending_payment', a letter
  * body is far larger than Stripe's 500-character metadata limit, so only the
  * order id travels with the session. The order, not the letter, because the
  * pair SKU produces two letters and both have to be promoted by one webhook.
@@ -70,7 +70,7 @@ export async function refund(paymentIntentId: string): Promise<void> {
 }
 
 /**
- * Events this webhook acts on. Anything else is acknowledged and ignored —
+ * Events this webhook acts on. Anything else is acknowledged and ignored,
  * Stripe sends a great deal more than a product this small needs.
  */
 export const HANDLED_EVENTS = [

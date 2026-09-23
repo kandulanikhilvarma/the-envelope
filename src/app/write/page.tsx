@@ -1,56 +1,111 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { LockIcon, MailIcon, UndoIcon } from "@/components/icons.tsx";
 import {
   BODY_MAX_CHARS,
   defaultDeliverOn,
   HORIZON_MAX_YEARS,
   maxDeliverOn,
+  minDeliverOn,
   todayIso,
 } from "@/lib/letters.ts";
+import { occasionFor } from "@/lib/occasions.ts";
 import { breakdown, formatEur } from "@/lib/pricing.ts";
 import { ComposeForm } from "./compose-form.tsx";
 
 export const metadata: Metadata = {
-  title: "Write your letter — The Envelope",
+  title: "Write your letter",
   description:
     "Write a letter, choose the date, and we post it on paper on the day.",
 };
 
-export default function WritePage() {
-  // Computed on the server so the date bounds cannot be edited in the page.
-  // The action re-checks them, and a database CHECK backs both up.
+/** ISO 3166-1 alpha-2. Names come from Intl so they are never misspelt. */
+const COUNTRY_CODES =
+  "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(
+    " ",
+  );
+
+function countryOptions(): [string, string][] {
+  const names = new Intl.DisplayNames(["en"], { type: "region" });
+  const all = COUNTRY_CODES.map(
+    (code): [string, string] => [code, names.of(code) ?? code],
+  ).sort((a, b) => a[1].localeCompare(b[1], "en"));
+  // Germany first: it is where most letters go and where we post from.
+  return [
+    ...all.filter(([code]) => code === "DE"),
+    ...all.filter(([code]) => code !== "DE"),
+  ];
+}
+
+export default async function WritePage({ searchParams }: PageProps<"/write">) {
+  const { occasion, cancelled, sku } = await searchParams;
+  const chosen = occasionFor(occasion);
+
+  // Computed per request, not at build time: reading searchParams makes this
+  // page dynamic, so the date bounds never go stale between deploys. The
+  // action re-checks them, and a database CHECK backs both up.
   const today = todayIso();
 
   return (
-    <>
-      <header className="border-b border-line">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-5">
-          <Link href="/" className="font-display text-xl tracking-tight">
-            The Envelope
-          </Link>
-          <span className="text-sm text-muted">
-            {formatEur(breakdown("single").grossCents)} · one letter
-          </span>
+    <main className="flex-1">
+      <section className="paper-grain border-b border-line bg-surface">
+        <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 lg:py-16">
+          <p className="eyebrow">
+            {occasion ? chosen.title : "A letter for later"}
+          </p>
+          <h1 className="mt-3 font-display text-4xl tracking-tight text-balance sm:text-5xl">
+            Write your letter
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted">
+            We seal it, keep it encrypted, and post it on the date you choose,
+            any day from tomorrow up to {HORIZON_MAX_YEARS} years from now.
+          </p>
+          <ul className="mt-7 flex flex-wrap gap-x-7 gap-y-3 text-sm text-muted">
+            <li className="flex items-center gap-2">
+              <LockIcon className="size-4 text-seal" />
+              Encrypted as soon as you submit
+            </li>
+            <li className="flex items-center gap-2">
+              <MailIcon className="size-4 text-seal" />
+              Address check one week before posting
+            </li>
+            <li className="flex items-center gap-2">
+              <UndoIcon className="size-4 text-seal" />
+              Cancel before printing for a full refund
+            </li>
+          </ul>
         </div>
-      </header>
+      </section>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-        <h1 className="font-display text-3xl tracking-tight sm:text-4xl">
-          Write your letter
-        </h1>
-        <p className="mt-3 max-w-prose text-muted">
-          We seal it, hold it encrypted, and post it on the date you choose —
-          any date from tomorrow up to {HORIZON_MAX_YEARS} years out.
-        </p>
+      <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 lg:py-16">
+        {cancelled ? (
+          <p
+            role="status"
+            className="mb-10 rounded-lg border border-line bg-surface px-5 py-4 text-sm"
+          >
+            Payment was not completed and nothing was charged. Your letter is
+            still here if you wrote it in this tab.
+          </p>
+        ) : null}
 
         <ComposeForm
+          today={today}
+          minDate={minDeliverOn(today)}
           defaultDate={defaultDeliverOn(today)}
           maxDate={maxDeliverOn(today)}
           bodyMaxChars={BODY_MAX_CHARS}
-          singlePrice={formatEur(breakdown("single").grossCents)}
-          pairPrice={formatEur(breakdown("pair").grossCents)}
+          prices={{
+            single: formatEur(breakdown("single").grossCents),
+            pair: formatEur(breakdown("pair").grossCents),
+          }}
+          vat={{
+            single: formatEur(breakdown("single").vatCents),
+            pair: formatEur(breakdown("pair").vatCents),
+          }}
+          prompts={chosen.prompts}
+          countries={countryOptions()}
+          initialSku={sku === "pair" ? "pair" : "single"}
         />
-      </main>
-    </>
+      </div>
+    </main>
   );
 }

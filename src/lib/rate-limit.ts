@@ -24,7 +24,7 @@ export const COMPOSE_LIMIT: Limit = {
 
 /**
  * Cancelling is idempotent and the token is 122 bits, so this is about load
- * rather than guessing — at ten an hour, brute force would outlast the sun.
+ * rather than guessing, at ten an hour, brute force would outlast the sun.
  */
 export const CANCEL_LIMIT: Limit = {
   action: "cancel",

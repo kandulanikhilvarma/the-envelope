@@ -40,7 +40,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     event = parseWebhookEvent(rawBody, signature);
   } catch (error) {
-    // A bad signature is not our bug to retry — refuse it and stop.
+    // A bad signature is not our bug to retry, refuse it and stop.
     const message = error instanceof Error ? error.message : "invalid";
     return new Response(`Signature verification failed: ${message}`, {
       status: 400,
@@ -81,7 +81,7 @@ async function onPaid(session: Stripe.Checkout.Session): Promise<Response> {
     .maybeSingle();
 
   if (orderError) {
-    // Let Stripe retry — this is a transient database problem, not bad data.
+    // Let Stripe retry, this is a transient database problem, not bad data.
     console.error("Failed to mark order paid", orderError);
     return new Response("Could not record payment", { status: 500 });
   }
@@ -138,7 +138,7 @@ async function onPaid(session: Stripe.Checkout.Session): Promise<Response> {
 /**
  * An abandoned checkout. The letter was sealed and stored before the
  * redirect, so without this it sits encrypted in the table forever, unpaid
- * and unreachable — personal data kept with no purpose left to serve.
+ * and unreachable, personal data kept with no purpose left to serve.
  */
 async function onExpired(session: Stripe.Checkout.Session): Promise<Response> {
   const { data: order, error } = await db()
@@ -163,7 +163,7 @@ async function onExpired(session: Stripe.Checkout.Session): Promise<Response> {
 }
 
 /**
- * A refund issued outside this application — in the Stripe dashboard, say.
+ * A refund issued outside this application, in the Stripe dashboard, say.
  * Without this the money goes back and the letter is still posted on the
  * day, which is the one outcome a refund is meant to prevent.
  */

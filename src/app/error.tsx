@@ -7,7 +7,7 @@ import Link from "next/link";
  *
  * It shows the digest and nothing else. An error on this site can have a
  * letter body, a recipient address or a Stripe id somewhere in its message,
- * and none of that belongs on a screen — the digest is enough to find the
+ * and none of that belongs on a screen, the digest is enough to find the
  * matching server log.
  */
 export default function Error({
@@ -18,8 +18,9 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-24">
-      <h1 className="font-display text-3xl tracking-tight sm:text-4xl">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-20 sm:px-6 sm:py-28">
+      <p className="eyebrow">Unexpected error</p>
+      <h1 className="mt-3 font-display text-4xl tracking-tight sm:text-5xl">
         Something went wrong at our end.
       </h1>
       <p className="mt-5 text-lg text-muted">
@@ -31,13 +32,13 @@ export default function Error({
         <button
           type="button"
           onClick={reset}
-          className="rounded-sm bg-seal px-6 py-3 text-seal-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-seal"
+          className="btn btn-primary"
         >
           Try again
         </button>
         <Link
           href="/"
-          className="rounded-sm border border-line px-6 py-3 transition-colors hover:bg-surface"
+          className="btn btn-secondary"
         >
           Back to the start
         </Link>

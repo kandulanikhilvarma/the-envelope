@@ -6,7 +6,7 @@ import { refund } from "./stripe.ts";
  *
  * The promise on /promise is specific: cancelling deletes the letter itself,
  * not just its place in the queue. So this nulls the ciphertext rather than
- * only flipping a status — a "deleted" letter still sitting encrypted in a
+ * only flipping a status, a "deleted" letter still sitting encrypted in a
  * table has not been deleted, and under GDPR erasure that distinction is the
  * whole point.
  *

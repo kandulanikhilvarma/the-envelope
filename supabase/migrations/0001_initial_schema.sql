@@ -1,4 +1,4 @@
--- The Envelope — initial schema.
+-- The Envelope, initial schema.
 --
 -- Design notes that are load-bearing:
 --   * A letter is written before it is paid for, so it starts at

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { HORIZON_MAX_YEARS } from "@/lib/letters.ts";
 
 export const metadata: Metadata = {
-  title: "Our wind-down promise — The Envelope",
+  title: "Our wind-down promise",
   description:
     "What happens to your letter if The Envelope ever stops operating.",
 };
@@ -11,16 +11,8 @@ export const metadata: Metadata = {
 export default function PromisePage() {
   return (
     <>
-      <header className="border-b border-line">
-        <div className="mx-auto w-full max-w-2xl px-4 py-5">
-          <Link href="/" className="font-display text-xl tracking-tight">
-            The Envelope
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-14">
-        <h1 className="font-display text-3xl tracking-tight sm:text-4xl">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-16 sm:px-6 sm:py-20">
+        <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
           Our wind-down promise
         </h1>
 
@@ -75,7 +67,7 @@ export default function PromisePage() {
         </dl>
 
         <p className="mt-12">
-          <Link href="/" className="text-seal underline-offset-4 hover:underline">
+          <Link href="/" className="link">
             Back to the start
           </Link>
         </p>

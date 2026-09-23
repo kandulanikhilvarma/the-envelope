@@ -4,14 +4,14 @@ import { HORIZON_MAX_YEARS } from "@/lib/letters.ts";
 import { breakdown, formatEur } from "@/lib/pricing.ts";
 
 export const metadata: Metadata = {
-  title: "Terms — The Envelope",
+  title: "Terms",
   description: "What we promise, what we do not, and what you can ask for.",
 };
 
 /**
  * OPERATOR: have a German e-commerce lawyer read this before launch. The
  * cancellation section reflects the conservative reading recorded in the
- * classification note — we honour a withdrawal window regardless of whether
+ * classification note, we honour a withdrawal window regardless of whether
  * the sale is finally classified as goods or as a service.
  */
 const OPERATOR = "[Operator legal name]";
@@ -20,16 +20,8 @@ const CONTACT = "[contact email]";
 export default function TermsPage() {
   return (
     <>
-      <header className="border-b border-line">
-        <div className="mx-auto w-full max-w-2xl px-4 py-5">
-          <Link href="/" className="font-display text-xl tracking-tight">
-            The Envelope
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-14">
-        <h1 className="font-display text-3xl tracking-tight sm:text-4xl">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-16 sm:px-6 sm:py-20">
+        <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
           Terms
         </h1>
         <p className="mt-5 text-lg text-muted">
@@ -43,7 +35,7 @@ export default function TermsPage() {
             {OPERATOR}. Details in the{" "}
             <Link
               href="/imprint"
-              className="text-seal underline-offset-4 hover:underline"
+              className="link"
             >
               Impressum
             </Link>
@@ -121,7 +113,7 @@ export default function TermsPage() {
             Undelivered letters are posted early or returned to you. See the{" "}
             <Link
               href="/promise"
-              className="text-seal underline-offset-4 hover:underline"
+              className="link"
             >
               wind-down promise
             </Link>
@@ -130,7 +122,7 @@ export default function TermsPage() {
         </section>
 
         <p className="mt-12">
-          <Link href="/" className="text-seal underline-offset-4 hover:underline">
+          <Link href="/" className="link">
             Back to the start
           </Link>
         </p>

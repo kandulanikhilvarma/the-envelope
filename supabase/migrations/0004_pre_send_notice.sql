@@ -7,7 +7,7 @@
 -- notified_at doubles as the claim marker: it is set inside the same UPDATE
 -- that selects the row, so two overlapping runs cannot both email the same
 -- person. If the send then fails the worker resets it to null and the next
--- day tries again — a notice that arrives a day late beats one sent twice.
+-- day tries again, a notice that arrives a day late beats one sent twice.
 
 alter table public.letters
   add column notified_at timestamptz;
