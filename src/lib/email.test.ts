@@ -48,6 +48,9 @@ describe("confirmationEmail", () => {
 
     assert.ok(message.text.includes(TOKEN));
     assert.ok(message.subject.includes("14 June 2027"));
+    assert.ok(message.text.includes("/manage"));
+    assert.ok(message.text.includes("/cancel"));
+    assert.ok(!message.text.includes(`/manage?${TOKEN}`));
   });
 
   it("lists both addresses for a pair", () => {
@@ -92,6 +95,8 @@ describe("preSendNoticeEmail", () => {
       assert.ok(message.text.includes(line), `missing ${line}`);
     }
     assert.ok(message.text.includes(TOKEN));
+    assert.ok(message.text.includes("/manage"));
+    assert.ok(!message.text.includes("reply to this email"));
   });
 
   it("leaves out the optional line when there is none", () => {

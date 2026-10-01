@@ -5,6 +5,7 @@ import {
   callerIp,
   CANCEL_LIMIT,
   COMPOSE_LIMIT,
+  MANAGE_LIMIT,
 } from "./rate-limit.ts";
 
 describe("bucketFor", () => {
@@ -31,6 +32,11 @@ describe("bucketFor", () => {
       bucketFor(COMPOSE_LIMIT, "203.0.113.42"),
       bucketFor(CANCEL_LIMIT, "203.0.113.42"),
     );
+  });
+
+  it("keeps management attempts separate from checkout and cancellation", () => {
+    const buckets = [COMPOSE_LIMIT, CANCEL_LIMIT, MANAGE_LIMIT].map((limit) => bucketFor(limit, "203.0.113.42"));
+    assert.equal(new Set(buckets).size, 3);
   });
 });
 

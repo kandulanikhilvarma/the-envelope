@@ -34,7 +34,7 @@ function longDate(iso: string): string {
 const NEXT_STEPS: [typeof MailIcon, string][] = [
   [
     MailIcon,
-    "About a week before the date, we email you the address we hold. Reply if it needs correcting.",
+    "About a week before the date, we email you the address we hold. Use your private reference at Manage your letter to correct it before printing.",
   ],
   [
     PrinterIcon,
@@ -152,12 +152,16 @@ export default async function WrittenPage({
             <section className="card mt-6 p-6 sm:p-8">
               <h2 className="font-display text-xl">Keep this reference</h2>
               <p className="mt-2 leading-relaxed text-muted">
-                It is the only way to cancel{" "}
-                {plural ? "these letters" : "this letter"}, and this page will
-                not show it again. A copy is in your confirmation email.
+                Use it to check the status, update the address, or cancel{" "}
+                {plural ? "these letters" : "this letter"}. A copy is in your
+                confirmation email. Keep it private: anyone who holds it can
+                manage your letters.
               </p>
               <CopyReference token={sealed.cancelToken} />
               <div className="mt-6 flex flex-wrap items-center gap-4">
+                <Link href="/manage" className="btn btn-primary text-sm">
+                  Manage your {plural ? "letters" : "letter"}
+                </Link>
                 {first ? (
                   <AddToCalendar
                     deliverOn={first.deliverOn}

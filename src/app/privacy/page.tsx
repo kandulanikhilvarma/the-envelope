@@ -118,7 +118,9 @@ export default function PrivacyPage() {
           <h2 className="font-display text-xl">Your rights</h2>
           <p className="mt-2 text-muted">
             You can ask for a copy of what we hold, ask us to correct it, or
-            ask us to delete it. For deletion you do not need to email anyone:{" "}
+            ask us to delete it. You can{" "}
+            <Link href="/manage" className="link">check the posting details and correct the address</Link>{" "}
+            yourself using your private reference. For deletion you do not need to email anyone:{" "}
             <Link
               href="/cancel"
               className="link"

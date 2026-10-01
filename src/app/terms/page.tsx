@@ -83,7 +83,9 @@ export default function TermsPage() {
             We post to the address you gave us. If someone has moved by the
             delivery date, the letter goes wherever that address now leads. We
             email you before posting so you can correct it, but we cannot know
-            an address has gone stale on our own.
+            an address has gone stale on our own. Use your private reference at{" "}
+            <Link href="/manage" className="link">Manage your letter</Link>{" "}
+            to update the address before printing begins.
           </p>
         </section>
 

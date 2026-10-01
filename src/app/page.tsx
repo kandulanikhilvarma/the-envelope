@@ -82,7 +82,7 @@ const FAQ: [string, string][] = [
   ],
   [
     "What if the address changes?",
-    "About a week before we post, we email you the address we hold. Reply to that email with the new address and we will correct it before printing.",
+    "You can update the address yourself at Manage your letter, using the private reference from your confirmation. We also email you the address about a week before posting. Changes are possible until printing begins.",
   ],
   [
     "Can I cancel?",
