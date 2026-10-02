@@ -14,6 +14,7 @@ flowchart TB
     subgraph vercel["Vercel, Next.js App Router"]
         MKT["Marketing pages<br/>RSC, static"]
         APP["/write, Server Action<br/>validate, seal, store, checkout"]
+        MAN["/manage, Server Actions<br/>status + address by private reference"]
         CXL["/cancel, Server Action<br/>erase + refund by token"]
         HOOK["/api/stripe/webhook<br/>signature verified"]
         CRON["/api/cron/dispatch<br/>shared-secret protected"]
@@ -22,10 +23,11 @@ flowchart TB
     V --> MKT
     MKT --> APP
     V --> CXL
+    V --> MAN
 
     subgraph supa["Supabase, Postgres, RLS on every table"]
         ORD[("orders<br/>stripe_session_id UNIQUE<br/>cancel_token UNIQUE")]
-        LET[("letters<br/>ciphertext + key_version<br/>CHECK deliver_on &lt;= created_on + 5y")]
+        LET[("letters<br/>ciphertext + key_version<br/>5-year horizon CHECK")]
         CON[("consent_log<br/>Art. 9 + withdrawal ack")]
         HB[("cron_heartbeat<br/>last_run_at")]
     end
@@ -35,6 +37,8 @@ flowchart TB
     APP --> CON
     HOOK -->|"pending_payment to scheduled<br/>or erase on expiry / refund"| LET
     CXL -->|"null ciphertext, status withdrawn"| LET
+    MAN -->|"authorize reference"| ORD
+    MAN -->|"metadata only + conditional address update"| LET
     CRON -->|"CAS scheduled to sending<br/>FOR UPDATE SKIP LOCKED"| LET
     CRON --> HB
 

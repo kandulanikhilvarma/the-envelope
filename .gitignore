@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/browser-proof/
+/.impeccable/hook.cache.json
 
 # next.js
 /.next/

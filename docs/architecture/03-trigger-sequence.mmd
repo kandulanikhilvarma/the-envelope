@@ -29,7 +29,7 @@ sequenceDiagram
     rect rgb(243, 234, 219)
         Note over WK,P: Pass 2, dispatch
         WK->>DB: claim_due_letters(), CAS to sending, SKIP LOCKED
-        Note over WK,DB: deliver_on &lt;= current_date, so a missed run<br/>catches up instead of skipping a day forever.
+        Note over WK,DB: deliver_on on or before current_date, so a missed run<br/>catches up instead of skipping a day forever.
         loop each claimed letter
             WK->>WK: decrypt via keyring[key_version]
             WK->>WK: render A4 PDF, address inside the DIN 5008 window

@@ -62,6 +62,7 @@ npm run dev
 | `npm run typecheck` | `next typegen` then `tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm test` | Node's own test runner over `src/lib/*.test.ts` |
+| `npm run test:manage` | Isolated browser checks for private letter management; requires Playwright and Chromium or a configured browser channel |
 | `npm run preflight` | Talks to every real dependency and reports what is wired and what is not |
 | `npm run pdf-proof` | Renders a letter and checks the address lands in the DIN 5008 window |
 | `npm run test-letter` | Posts one real letter through Pingen, the week-zero gate |
@@ -100,6 +101,7 @@ flowchart TB
     subgraph vercel["Vercel, Next.js App Router"]
         MKT["Marketing pages<br/>RSC, static"]
         APP["/write, Server Action<br/>validate, seal, store, checkout"]
+        MAN["/manage, Server Actions<br/>status + address by private reference"]
         CXL["/cancel, Server Action<br/>erase + refund by token"]
         HOOK["/api/stripe/webhook<br/>signature verified"]
         CRON["/api/cron/dispatch<br/>shared-secret protected"]
@@ -108,10 +110,11 @@ flowchart TB
     V --> MKT
     MKT --> APP
     V --> CXL
+    V --> MAN
 
     subgraph supa["Supabase, Postgres, RLS on every table"]
         ORD[("orders<br/>stripe_session_id UNIQUE<br/>cancel_token UNIQUE")]
-        LET[("letters<br/>ciphertext + key_version<br/>CHECK deliver_on &lt;= created_on + 5y")]
+        LET[("letters<br/>ciphertext + key_version<br/>5-year horizon CHECK")]
         CON[("consent_log<br/>Art. 9 + withdrawal ack")]
         HB[("cron_heartbeat<br/>last_run_at")]
     end
@@ -121,6 +124,8 @@ flowchart TB
     APP --> CON
     HOOK -->|"pending_payment to scheduled<br/>or erase on expiry / refund"| LET
     CXL -->|"null ciphertext, status withdrawn"| LET
+    MAN -->|"authorize reference"| ORD
+    MAN -->|"metadata only + conditional address update"| LET
     CRON -->|"CAS scheduled to sending<br/>FOR UPDATE SKIP LOCKED"| LET
     CRON --> HB
 
@@ -173,7 +178,7 @@ sequenceDiagram
     participant M as Email
 
     U->>A: letter(s), delivery date, recipient address, SKU
-    A->>A: validate, horizon &lt;= 5y, body length, address shape
+    A->>A: validate, horizon at most 5y, body length, address shape
     Note over A,U: Both consent boxes are required and neither is<br/>pre-ticked. The pair SKU must yield two letters.
 
     A->>A: seal each body, AES-256-GCM, fresh IV, active key_version
@@ -253,7 +258,7 @@ sequenceDiagram
     rect rgb(243, 234, 219)
         Note over WK,P: Pass 2, dispatch
         WK->>DB: claim_due_letters(), CAS to sending, SKIP LOCKED
-        Note over WK,DB: deliver_on &lt;= current_date, so a missed run<br/>catches up instead of skipping a day forever.
+        Note over WK,DB: deliver_on on or before current_date, so a missed run<br/>catches up instead of skipping a day forever.
         loop each claimed letter
             WK->>WK: decrypt via keyring[key_version]
             WK->>WK: render A4 PDF, address inside the DIN 5008 window
@@ -375,6 +380,7 @@ refunding it would be refunding something already delivered.
 | `/` | Static | Landing: hero, four-step timeline, six occasions, example letter, pricing, commitments, FAQ with JSON-LD. |
 | `/write` | Dynamic + client form | Package, letters, date presets, address, consent, with a live paper preview and a draft kept in `sessionStorage` for the tab. `?occasion=` swaps the writing prompts, `?sku=pair` preselects the pair, `?cancelled=1` explains a cancelled payment. |
 | `/written` | Dynamic | Post-payment. Lists each sealed letter, shows the cancel token once with a copy button, offers an `.ics` calendar file, and clears the draft. `noindex`. |
+| `/manage` | Static shell + client form | Use the private reference to check delivery status or update each letter's address before printing. No account; no letter content retrieved. `noindex`. |
 | `/cancel` | Static shell + client form | Redeem a cancel token: erases the letter and refunds. |
 | `/promise` | Static | The wind-down promise, in plain words. |
 | `/privacy` | Static | GDPR Art. 13 notice. |
@@ -382,7 +388,7 @@ refunding it would be refunding something already delivered.
 | `/imprint` | Static | §5 DDG Impressum. Linked from every page footer. |
 | `/api/stripe/webhook` | Dynamic | Signature-verified. Three events. |
 | `/api/cron/dispatch` | Dynamic | Notices, then dispatch. 404s without the secret. |
-| `/robots.txt` | Static | Keeps `/written`, `/cancel` and the API out of search results. |
+| `/robots.txt` | Static | Keeps `/written`, `/manage`, `/cancel` and the API out of search results. |
 | `/sitemap.xml` | Static | The six pages a stranger should be able to find. |
 | `/opengraph-image`, `/apple-icon`, `/icon.svg`, `/manifest.webmanifest` | Static | Share card and icons, generated from the seal artwork at build time. |
 | `not-found.tsx` | Static | 404, with the three places people actually meant to go. |
@@ -421,6 +427,7 @@ src/
     page.tsx               landing
     write/                 compose form + server action
     written/               confirmation, shows the cancel token once
+    manage/                private status lookup + address updates
     cancel/                withdrawal form + server action
     promise|privacy|terms|imprint/
     api/stripe/webhook/    three Stripe events
@@ -431,6 +438,7 @@ src/
     art.tsx                SVG illustrations and the wax seal
     icons.tsx              stroke icon set
     site-chrome.tsx        header, footer, logo
+    address-fields.tsx     shared accessible postal-address fields
   lib/
     crypto.ts              AES-256-GCM keyring: seal, open, secretsMatch
     letters.ts             validation and the horizon cap
@@ -443,6 +451,9 @@ src/
     pdf.ts                 A4 render, DIN 5008 address window
     email.ts               confirmation and pre-send notice
     withdraw.ts            erase + refund, and the erase-only path
+    manage.ts              token authorization, metadata lookup, conditional address update
+    management.ts          serializable management types and status language
+    countries.ts           country options shared by compose and management
     rate-limit.ts          Postgres-backed limiter for the open POST paths
     db.ts                  the single service-role client
     env.ts                 required-variable accessor
@@ -502,8 +513,8 @@ boundary styles itself inline, because the root layout failing means there are
 no fonts or tokens to lean on, and it navigates with a plain anchor so the
 browser reloads rather than re-entering the broken tree.
 
-**Crawlers.** `/written` renders a cancel token and `/cancel` redeems one.
-Both are disallowed in `robots.txt`, `/written` is `noindex`, and the sitemap
+**Crawlers.** `/written` renders a private reference; `/manage` and `/cancel`
+redeem it. All three are disallowed in `robots.txt` and carry `noindex`. The sitemap
 lists only the six pages a stranger should find.
 
 **Operator alerts.** The architecture always showed an alert box; the code
@@ -554,7 +565,8 @@ ends up holding, the confirmation page shows it once and never again.
 
 **Pre-send notice**, sent seven days ahead by the worker, quoting the stored
 address in full. Correcting a stale address is the entire point, so the
-address is the body of the email.
+address is the body of the email. Both emails point to `/manage`; the private
+reference is separate text and never appended to the browser URL.
 
 `sendEmail` never throws. A payment that succeeded must not be reported as
 failed because a mail provider is down, and a letter must not be blocked from
@@ -593,6 +605,19 @@ config. The suite covers the parts where being wrong is expensive:
   from the first hop.
 - **Site URL**, production host beats preview host, because a cancel link in
   an email outlives the preview deploy that sent it.
+- **Management**, malformed and unknown references receive the same response,
+  lookups select delivery metadata only, updates require the reference's order
+  and an editable status in the same query, and database errors never claim
+  an address was saved.
+
+`npm run test:manage` starts its own Next.js server against a local synthetic
+Supabase fixture. It checks successful updates, independence of the pair's
+addresses, rejection when printing claims a letter mid-edit, status refresh,
+private reference handling, mobile overflow, dark mode and the shared compose
+fields. It contacts no live services. Screenshots are written to the ignored
+`browser-proof/` directory. Install Playwright with a browser, or set
+`PLAYWRIGHT_MODULE_PATH` to an existing Playwright package directory and
+`PLAYWRIGHT_CHANNEL` to a system browser channel such as `msedge` or `chrome`.
 
 Then there is `npm run preflight`, which is the other half: it talks to the
 real Supabase, Stripe, Pingen and Resend with the credentials in the
@@ -604,6 +629,15 @@ Pingen account. Those are verified by the runbook below, not by mocks that
 would only prove the mocks agree with themselves.
 
 ## Operating it
+
+**Address changes.** Customers use the reference from their confirmation at
+`/manage` themselves. Each letter in a pair has its own destination. Every edit
+checks the reference again and updates only a paid order's `scheduled`, `retry`
+or `failed` letter. The ownership and status predicates are part of one atomic
+database update: when dispatch has already claimed the letter as `sending`, the
+edit changes no row and the customer is asked to refresh. Editing an address
+does not reset attempts, restart a failed letter, change its date or decrypt its
+content. This enhancement uses the existing schema and needs no migration.
 
 **Daily.** Vercel Cron calls `/api/cron/dispatch` at 06:00 UTC. It returns
 `{ claimed, sent, failed, notices, overdue }`. A non-zero `overdue` means

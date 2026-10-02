@@ -67,6 +67,7 @@ const FOOTER = [
   {
     title: "Your letter",
     links: [
+      ["/manage", "Manage your letter"],
       ["/cancel", "Cancel a letter"],
       ["/promise", "Wind-down promise"],
     ],

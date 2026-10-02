@@ -14,6 +14,7 @@ import {
   LockIcon,
   SparkIcon,
 } from "@/components/icons.tsx";
+import { AddressFields, EMPTY_ADDRESS, type PostalAddress as Address } from "@/components/address-fields.tsx";
 import type { ComposeState } from "@/lib/consent.ts";
 import { DRAFT_KEY } from "@/lib/draft.ts";
 import { addMonths } from "@/lib/letters.ts";
@@ -31,16 +32,6 @@ import { composeLetter } from "./actions.ts";
  */
 
 type Sku = "single" | "pair";
-
-const EMPTY_ADDRESS = {
-  name: "",
-  line1: "",
-  line2: "",
-  postcode: "",
-  city: "",
-  country: "DE",
-};
-type Address = typeof EMPTY_ADDRESS;
 
 type Draft = {
   sku: Sku;
@@ -99,97 +90,6 @@ const PRESETS = [
   ["2 years", 24],
   ["5 years", 60],
 ] as const;
-
-const ADDRESS_FIELDS: {
-  key: keyof Address;
-  label: string;
-  autoComplete: string;
-  optional?: boolean;
-  wide?: boolean;
-}[] = [
-  { key: "name", label: "Recipient’s name", autoComplete: "name", wide: true },
-  {
-    key: "line1",
-    label: "Street and number",
-    autoComplete: "address-line1",
-    wide: true,
-  },
-  {
-    key: "line2",
-    label: "Flat, floor, or care of",
-    autoComplete: "address-line2",
-    optional: true,
-    wide: true,
-  },
-  { key: "postcode", label: "Postcode", autoComplete: "postal-code" },
-  { key: "city", label: "Town or city", autoComplete: "address-level2" },
-];
-
-function AddressFields({
-  suffix = "",
-  value,
-  onChange,
-  countries,
-  invalidField,
-}: {
-  suffix?: string;
-  value: Address;
-  onChange: (next: Address) => void;
-  countries: [string, string][];
-  invalidField?: string;
-}) {
-  const section = suffix ? "section-second shipping" : "shipping";
-
-  return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      {ADDRESS_FIELDS.map((f) => {
-        const name = `${f.key}${suffix}`;
-        return (
-          <div key={f.key} className={f.wide ? "sm:col-span-2" : undefined}>
-            <label htmlFor={name} className="block text-sm text-muted">
-              {f.label}
-              {f.optional ? " (optional)" : null}
-            </label>
-            <input
-              id={name}
-              name={name}
-              required={!f.optional}
-              autoComplete={`${section} ${f.autoComplete}`}
-              value={value[f.key]}
-              onChange={(e) => onChange({ ...value, [f.key]: e.target.value })}
-              aria-invalid={invalidField === name || undefined}
-              className="field"
-            />
-          </div>
-        );
-      })}
-      <div className="sm:col-span-2">
-        <label
-          htmlFor={`country${suffix}`}
-          className="block text-sm text-muted"
-        >
-          Country
-        </label>
-        <select
-          id={`country${suffix}`}
-          name={`country${suffix}`}
-          required
-          autoComplete={`${section} country`}
-          value={value.country}
-          onChange={(e) => onChange({ ...value, country: e.target.value })}
-          aria-invalid={invalidField === `country${suffix}` || undefined}
-          className="field"
-        >
-          {countries.map(([code, label]) => (
-            <option key={code} value={code}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-}
 
 function Step({
   n,

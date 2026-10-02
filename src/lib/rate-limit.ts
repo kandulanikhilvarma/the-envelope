@@ -32,6 +32,13 @@ export const CANCEL_LIMIT: Limit = {
   windowSeconds: 3600,
 };
 
+/** Lookups, refreshes and edits share a bucket separate from cancellation. */
+export const MANAGE_LIMIT: Limit = {
+  action: "manage",
+  max: 30,
+  windowSeconds: 600,
+};
+
 /**
  * The bucket key. The IP is hashed, so the table holds no addresses: a
  * rate-limit row is not a place to accumulate personal data, and this one is

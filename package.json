@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --test src/lib/*.test.ts",
+    "test:manage": "node scripts/manage-smoke.mjs",
     "preflight": "node --env-file-if-exists=.env.local scripts/preflight.ts",
     "pdf-proof": "node --env-file-if-exists=.env.local scripts/pdf-proof.ts",
     "test-letter": "node --env-file-if-exists=.env.local scripts/pingen-test-letter.ts"

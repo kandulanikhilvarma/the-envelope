@@ -26,6 +26,10 @@ export default function CancelPage() {
           that is by design.
         </p>
 
+        <p className="mt-4 text-sm text-muted">
+          Just moved house? <Link href="/manage" className="link">Update the address instead</Link>, using the same private reference.
+        </p>
+
         <CancelForm />
 
         <p className="mt-10 text-sm leading-relaxed text-muted">
