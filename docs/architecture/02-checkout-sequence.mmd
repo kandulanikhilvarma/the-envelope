@@ -41,4 +41,4 @@ sequenceDiagram
         W->>DB: erase ciphertext, status withdrawn
     end
 
-    Note over U,DB: A later refund in the Stripe dashboard arrives as<br/>charge.refunded and erases the letters the same way,<br/>so money back always means the letter is stopped.
+    Note over U,DB: A dashboard refund arrives as charge.refunded.<br/>The webhook erases letters in withdrawable states.<br/>It cannot recall a letter in sending or sent.

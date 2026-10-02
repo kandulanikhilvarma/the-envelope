@@ -60,4 +60,4 @@ flowchart TB
     DP --> RCP(["Recipient mailbox"])
 
     ALERT["Operator alert<br/>send failure / cron overdue"]
-    CRON -.->|"on error or stale heartbeat"| ALERT
+    CRON -.->|"on send failure or overdue letters"| ALERT
